@@ -34,20 +34,47 @@ import sys
 from pathlib import Path
 
 import anthropic
+from PIL import Image
+import io
+
+def _load_dotenv() -> None:
+    """Load KEY=VALUE pairs from .env in the same directory as this script."""
+    env_file = Path(__file__).parent / ".env"
+    if not env_file.exists():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, _, v = line.partition("=")
+            os.environ.setdefault(k.strip(), v.strip())
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+MAX_BYTES = 4 * 1024 * 1024  # 4 MB — leave headroom under the 5 MB API limit
+
 def encode_image(path: Path) -> str:
-    """Return base64-encoded PNG bytes."""
-    with open(path, "rb") as f:
-        return base64.standard_b64encode(f.read()).decode("utf-8")
+    """Return base64-encoded JPEG bytes, resizing if the file exceeds MAX_BYTES."""
+    img = Image.open(path).convert("RGB")
+    quality = 85
+    while True:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality)
+        data = buf.getvalue()
+        if len(data) <= MAX_BYTES:
+            return base64.standard_b64encode(data).decode("utf-8")
+        # Reduce: lower quality first, then shrink dimensions
+        if quality > 50:
+            quality -= 10
+        else:
+            w, h = img.size
+            img = img.resize((w * 3 // 4, h * 3 // 4), Image.LANCZOS)
 
 
 def sorted_images(folder: Path, prefix: str) -> list[Path]:
-    """Return sorted image files matching <prefix>_NN.png in folder."""
-    pattern = re.compile(rf"^{re.escape(prefix)}_\d+\.(png|jpg|jpeg)$", re.IGNORECASE)
+    """Return sorted image files whose name starts with <prefix> followed by one or more underscores and digits."""
+    pattern = re.compile(rf"^{re.escape(prefix)}_+\d+\.(png|jpg|jpeg)$", re.IGNORECASE)
     files = [p for p in folder.iterdir() if pattern.match(p.name)]
     return sorted(files, key=lambda p: int(re.search(r"(\d+)", p.stem).group(1)))
 
@@ -66,7 +93,7 @@ def call_claude(client: anthropic.Anthropic, image_path: Path, prompt: str) -> s
                         "type": "image",
                         "source": {
                             "type": "base64",
-                            "media_type": "image/png",
+                            "media_type": "image/jpeg",
                             "data": b64,
                         },
                     },
@@ -134,7 +161,7 @@ def extract_cut_guide(client: anthropic.Anthropic, cut_folder: Path) -> list[dic
         try:
             rows = json.loads(raw)
             all_rows.extend(rows)
-            print(f"         → {len(rows)} piece rows")
+            print(f"         -> {len(rows)} piece rows")
         except json.JSONDecodeError as e:
             print(f"  [cut] WARNING: JSON parse error for {img.name}: {e}")
             print(f"         Raw response (first 500 chars): {raw[:500]}")
@@ -183,7 +210,7 @@ def extract_assembly(client: anthropic.Anthropic, assy_folder: Path) -> dict[str
             entries = json.loads(raw)
             for entry in entries:
                 blocks[entry["block_id"]] = entry["fragments"]
-            print(f"         → {len(entries)} blocks")
+            print(f"         -> {len(entries)} blocks")
         except json.JSONDecodeError as e:
             print(f"  [assy] WARNING: JSON parse error for {img.name}: {e}")
 
@@ -294,8 +321,10 @@ def write_assembly_data(blocks: dict[str, list[str]], out_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    _load_dotenv()
     parser = argparse.ArgumentParser(description="Extract Legit Kits pattern data via Claude vision API")
     parser.add_argument("pattern_folder", help="Folder containing cut/, assy/, overview/ subfolders")
+    parser.add_argument("--api-key", help="Anthropic API key (overrides ANTHROPIC_API_KEY env var)")
     args = parser.parse_args()
 
     pattern_folder = Path(args.pattern_folder).resolve()
@@ -306,9 +335,9 @@ def main() -> None:
     assy_folder     = pattern_folder / "assy"
     overview_folder = pattern_folder / "overview"
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = args.api_key or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        sys.exit("Error: ANTHROPIC_API_KEY environment variable not set")
+        sys.exit("Error: provide --api-key or set ANTHROPIC_API_KEY environment variable")
 
     client = anthropic.Anthropic(api_key=api_key)
 
