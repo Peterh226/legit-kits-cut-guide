@@ -1,43 +1,70 @@
 # Legit Kits Cut Guide Generator
 
-A Python tool that converts Legit Kits quilt pattern cut guides from PDF into a formatted Excel spreadsheet — one row per piece, with auto-filter, alternating row colors, and a fabric summary sheet.
+A Python tool that converts Legit Kits quilt pattern cut guides from scanned PDFs into formatted Excel spreadsheets — one row per piece, with auto-filter, alternating row colors, and summary/statistics sheets.
 
-Currently includes the complete **Land of the Free** pattern (86 fabrics, 1,538 piece rows).
+Currently includes the complete **Land of the Free** pattern (86 fabrics, 1,614 piece rows).
 
 ---
 
 ## Output
 
-Running the script produces `LandOfTheFree_CutGuide.xlsx` with two sheets:
+### `generate.py` → `LandOfTheFree_CutGuide.xlsx`
 
 | Sheet | Contents |
 |---|---|
-| **Cut Guide** | One row per piece: Fabric Code, Fabric Name, SKU, Fabric Size, Piece #, Template Code, Quantity |
+| **Cut Guide** | One row per piece: Fabric Code, Fabric Name, SKU, Fabric Size, Piece #, Template Code, Quantity, Page |
 | **By Fabric Code** | One row per fabric with total piece count |
+| **Statistics** | Summary counts and per-fabric breakdown |
 
-Both sheets have auto-filter enabled. The Cut Guide sheet is frozen at row 1.
+Both data sheets have auto-filter enabled. The Cut Guide sheet is frozen at row 1.
+
+### `tracking.py` → `LandOfTheFree_Tracker.xlsx`
+
+Progress tracker workbook with 6 sheets including piece counts by fabric and a block completion checklist.
 
 ---
 
 ## Requirements
 
-Python 3.8+ and one dependency:
-
 ```bash
-pip install openpyxl
+pip install openpyxl pillow anthropic
 ```
 
 ---
 
 ## Usage
 
-```bash
-# Generate with default filename
-python generate.py
+### Generate cut guide Excel from existing data
 
-# Specify a custom output name
+```bash
+python generate.py
 python generate.py --output my_pattern.xlsx
 ```
+
+### Validate data before generating
+
+```bash
+python lint.py
+```
+
+### Extract data from scanned images (Claude API)
+
+```bash
+python extract.py <pattern_folder>
+```
+
+The pattern folder must contain three subfolders of scanned images:
+
+```
+<pattern_folder>/
+├── cut/       cut_01.png, cut_02.png, ...   (cut guide pages)
+├── assy/      assy_01.png, assy_02.png, ...  (assembly guide pages)
+└── overview/  overview_01.png, ...           (overview/kit contents pages)
+```
+
+`extract.py` calls the Claude vision API to extract structured data from each image, writes `data/cut_guide_data.py` and `data/assembly_data.py`, then runs `generate.py` and `tracking.py` automatically.
+
+Requires `ANTHROPIC_API_KEY` to be set in the environment.
 
 ---
 
@@ -45,34 +72,51 @@ python generate.py --output my_pattern.xlsx
 
 ```
 legit-kits-cut-guide/
-├── generate.py              # Main script — run this
+├── generate.py              # Produces cut guide Excel workbook
+├── tracking.py              # Produces progress tracker Excel workbook
+├── lint.py                  # Validates data/cut_guide_data.py
+├── extract.py               # Extracts data from scans via Claude API
 ├── data/
 │   ├── __init__.py
-│   └── cut_guide_data.py    # All fabric and piece data
-├── README.md
-├── CONTRIBUTING.md
-└── .gitignore
+│   ├── cut_guide_data.py    # Fabric and piece data (86 fabrics, 1,614 rows)
+│   └── assembly_data.py     # Block assembly data (64 blocks)
+└── README.md
 ```
 
 ---
 
-## Adding a New Pattern
+## Data Format
 
-All data lives in `data/cut_guide_data.py` as a Python list of tuples. Each tuple is:
+### cut_guide_data.py
+
+Each row in `DATA` is an 8-tuple:
 
 ```python
-(fabric_code, fabric_name, sku, fabric_size, piece_num, template_code, quantity)
+(fabric_code, fabric_name, sku, fabric_size, piece_num, template_code, quantity, page)
 ```
 
 **Example:**
 ```python
-("AF", "Saffron", "1320", "Fat 1/8YD", 1, "F3m", 3),
+("AF", "Saffron", "1320", "Fat 1/8YD", 1, "F3m", 3, 1),
 ```
 
-To add a new pattern, append its entries to the `DATA` list and re-run `generate.py`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
+The `page` field is the cut guide page number (not the PDF page number).
+
+### assembly_data.py
+
+`BLOCKS` maps each block ID to its ordered list of fragment IDs:
+
+```python
+BLOCKS = {
+    "A1": ["A1"],                              # single-fragment block
+    "B7": ["B7a","B7b","B7c","B7d",            # multi-fragment block
+            "B7e","B7f","B7g","B7h"],
+    ...
+}
+```
 
 ---
 
 ## Data Source
 
-Cut guide PDFs are produced by [Legit Kits](https://legitkits.com/) and are included with their quilt kits. Pattern data is transcribed for personal organizational use.
+Cut guides are printed booklets included with [Legit Kits](https://legitkits.com/) quilt kits. The PDF is created by scanning each page of the booklet. Pattern data is transcribed/extracted for personal organizational use.
