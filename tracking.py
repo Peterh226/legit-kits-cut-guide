@@ -232,7 +232,7 @@ def build_inventory_sheet(wb, fabric_info):
         ("Fabric Name", 18),
         ("SKU",          8),
         ("Kit Size",    20),
-        ("PDF Page",     8),
+        ("Page",          8),
         ("✓ In Kit",     9),
         ("✓ Labeled",    9),
     ]

@@ -148,7 +148,7 @@ def build_cut_guide_sheet(wb):
         ("Piece #",       10),
         ("Template Code", 16),
         ("Quantity",      10),
-        ("PDF Page",      10),
+        ("Page",           10),
     ]
     for col, (label, width) in enumerate(headers, 1):
         _header_cell(ws, 1, col, label, width)
@@ -179,7 +179,7 @@ def build_summary_sheet(wb, stats):
         ("Fabric Name",  18),
         ("SKU",          10),
         ("Fabric Size",  22),
-        ("PDF Page",     10),
+        ("Page",     10),
         ("Piece Rows",   12),
         ("Total Cuts",   12),
     ]
@@ -212,7 +212,7 @@ def build_stats_sheet(wb, stats):
     _stat_block(ws, 2, 2, "Total Fabrics",  stats["total_fabrics"],  label_width=18)
     _stat_block(ws, 2, 3, "Piece Rows",     stats["total_pieces"],   label_width=18)
     _stat_block(ws, 2, 4, "Total Cuts",     stats["total_cuts"],     label_width=18)
-    _stat_block(ws, 2, 5, "PDF Pages",      stats["max_page"],       label_width=18)
+    _stat_block(ws, 2, 5, "Pages",      stats["max_page"],       label_width=18)
     _stat_block(ws, 2, 6, "2-Block Pages",  len(stats["two_block_pages"]), label_width=18)
 
     row = 6
@@ -284,7 +284,7 @@ def build_stats_sheet(wb, stats):
     _section_header(ws, row, 2, 5,
                     f"Pages with Two Fabrics ({len(stats['two_block_pages'])} pages)")
     row += 1
-    _header_cell(ws, row, 2, "PDF Page",     10)
+    _header_cell(ws, row, 2, "Page",     10)
     _header_cell(ws, row, 3, "Fabric 1",     14)
     _header_cell(ws, row, 4, "Fabric 2",     14)
     _header_cell(ws, row, 5, "Fabric Names", 32)

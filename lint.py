@@ -53,7 +53,7 @@ def check_ambiguous_codes(data):
     single_letter = [c for c in codes if len(c) == 1]
     if single_letter:
         warnings.append(
-            f"  Single-letter codes (easy to misread — verify against PDF): {', '.join(single_letter)}"
+            f"  Single-letter codes (easy to misread — verify against scan): {', '.join(single_letter)}"
         )
 
     # Flag codes that are a prefix of another code
@@ -61,7 +61,7 @@ def check_ambiguous_codes(data):
         longer = [other for other in codes if other != c and other.startswith(c)]
         if longer:
             warnings.append(
-                f"  Code '{c}' is a prefix of {longer} — double-check both against PDF"
+                f"  Code '{c}' is a prefix of {longer} — double-check both against scan"
             )
 
     return warnings
@@ -132,7 +132,7 @@ def check_quantities(data):
         if not isinstance(qty, int) or qty <= 0:
             errors.append(f"  {_row_label(row)}: invalid quantity '{qty}' (must be a positive integer)")
         elif qty > 15:
-            warnings.append(f"  {_row_label(row)}: quantity {qty} is unusually large — verify against PDF")
+            warnings.append(f"  {_row_label(row)}: quantity {qty} is unusually large — verify against scan")
     return warnings, errors
 
 
@@ -141,7 +141,7 @@ def check_page_numbers(data):
 
     # Pages that are intentional continuations of a multi-page fabric —
     # data is stored under the first page, so these will always appear "missing".
-    # Add to this list whenever a fabric spans more than one PDF page.
+    # Add to this list whenever a fabric spans more than one page.
     KNOWN_CONTINUATION_PAGES = {
         19,  # Chocolate (HO) continues from p.19 — data stored under p.19 first half
         51,  # Sable (SL) continues from p.51 — data stored under p.51 first half
@@ -178,7 +178,7 @@ def check_template_codes(data):
     for row in data:
         tmpl = row[5]
         if not pattern.match(tmpl):
-            warnings.append(f"  {_row_label(row)}: unusual template code '{tmpl}' — verify against PDF")
+            warnings.append(f"  {_row_label(row)}: unusual template code '{tmpl}' — verify against scan")
     return warnings
 
 

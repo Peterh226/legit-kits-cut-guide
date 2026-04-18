@@ -6,20 +6,37 @@ This guide explains how to add cut guide data for a new Legit Kits pattern.
 
 ## Workflow
 
-1. **Get the cut guide PDF** from your Legit Kits kit
-2. **Upload the PDF to Claude** (claude.ai) with a prompt like:
-   > "Please parse this Legit Kits cut guide PDF and give me the Python tuples to add to cut_guide_data.py"
-3. **Paste the returned tuples** into `data/cut_guide_data.py`
-4. **Run the generator** and verify the output
+1. **Scan the booklets** — scan each page as a separate PNG image (one page per file)
+2. **Organize into folders** under a pattern folder:
+   ```
+   <pattern_folder>/
+   ├── cut/       cut_01.png, cut_02.png, ...   (cut guide pages)
+   ├── assy/      assy_01.png, assy_02.png, ...  (assembly guide pages)
+   └── overview/  overview_01.png, ...           (overview/kit contents pages)
+   ```
+3. **Run the extractor** (requires `ANTHROPIC_API_KEY`):
+   ```bash
+   python extract.py <pattern_folder>
+   ```
+   This calls the Claude vision API on each image, writes `data/cut_guide_data.py`
+   and `data/assembly_data.py`, then runs `generate.py` and `tracking.py`.
+
+4. **Review the output** — open the generated `.xlsx` files and spot-check a few
+   fabrics against the original scans to confirm accuracy.
+
+5. **Run lint** to catch any data issues:
+   ```bash
+   python lint.py
+   ```
 
 ---
 
 ## Data Format
 
-Each row in `DATA` is a 7-element tuple:
+Each row in `DATA` is an 8-element tuple:
 
 ```python
-(fabric_code, fabric_name, sku, fabric_size, piece_num, template_code, quantity)
+(fabric_code, fabric_name, sku, fabric_size, piece_num, template_code, quantity, page)
 ```
 
 | Field | Type | Example | Description |
@@ -31,6 +48,7 @@ Each row in `DATA` is a 7-element tuple:
 | `piece_num` | int | `1` | Circled number on the layout diagram |
 | `template_code` | str | `"F3m"` | Template identifier (letter + number + optional suffix) |
 | `quantity` | int | `3` | Number of cuts — the value in parentheses on the guide |
+| `page` | int | `1` | Cut guide page number |
 
 ---
 
@@ -42,34 +60,23 @@ Group entries by fabric code and add a comment header:
 # ------------------------------------------------------------------
 # AF  Saffron  1320  Fat 1/8YD  (p.1)
 # ------------------------------------------------------------------
-("AF", "Saffron", "1320", "Fat 1/8YD", 1, "F3m", 3),
-("AF", "Saffron", "1320", "Fat 1/8YD", 2, "F3s", 1),
+("AF", "Saffron", "1320", "Fat 1/8YD", 1, "F3m", 3, 1),
+("AF", "Saffron", "1320", "Fat 1/8YD", 2, "F3s", 1, 1),
 ...
 ```
 
-The comment format is: `fabric_code  fabric_name  sku  fabric_size  (page reference)`
-
 ---
 
-## Reading the Cut Guide PDF
+## Reading the Cut Guide Pages
 
-Each page of the cut guide shows:
-- **Top right**: fabric swatch color, fabric name, SKU number, and yardage — this is the fabric header
+Each scanned page shows one or more fabrics. For each fabric:
+- **Top right**: fabric swatch color, fabric name, SKU number, and yardage — the fabric header
 - **Two large letters** (e.g. `AF`) — the fabric code
 - **A layout diagram** with circled numbers — the piece numbers
-- **A legend** below or beside the diagram listing each piece:
-  `① F3m(3)` means piece 1 uses template F3m and requires 3 cuts
+- **A legend** listing each piece: `① F3m(3)` = piece 1, template F3m, 3 cuts
 
-Some pages show **two fabrics** (one in each half of the page). Parse each separately.
+The piece list is **split across two areas** of the page — read both sides to get all pieces.
 
-Some fabrics span **two pages** (e.g. Cappuccino UP, pages 58–59). Continue numbering sequentially.
+Some pages show **two fabrics** (one in each half of the page) — parse each separately.
 
----
-
-## After Adding Data
-
-```bash
-python generate.py
-```
-
-Open the resulting `.xlsx` and spot-check a few fabrics against the original PDF to confirm the data was entered correctly.
+Some fabrics span **two pages** (e.g. Cappuccino UP, pages 58–59) — continue numbering sequentially.

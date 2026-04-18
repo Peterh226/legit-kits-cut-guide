@@ -1,7 +1,7 @@
 """
 Land of the Free — Block Assembly Data
 ========================================
-Derived from the Legit Kits Assembly Guide PDF.
+Derived from the Legit Kits Assembly Guide scanned images.
 
 BLOCKS maps each block ID to the list of its fragment IDs.
   - Single-fragment blocks:  one entry equal to the block ID  (e.g. "A1": ["A1"])

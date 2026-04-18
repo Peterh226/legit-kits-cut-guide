@@ -1,6 +1,6 @@
 # Legit Kits Cut Guide Generator
 
-A Python tool that converts Legit Kits quilt pattern cut guides from scanned PDFs into formatted Excel spreadsheets — one row per piece, with auto-filter, alternating row colors, and summary/statistics sheets.
+A Python tool that converts Legit Kits quilt pattern cut guides from scanned images into formatted Excel spreadsheets — one row per piece, with auto-filter, alternating row colors, and summary/statistics sheets.
 
 Currently includes the complete **Land of the Free** pattern (86 fabrics, 1,614 piece rows).
 
@@ -100,7 +100,7 @@ Each row in `DATA` is an 8-tuple:
 ("AF", "Saffron", "1320", "Fat 1/8YD", 1, "F3m", 3, 1),
 ```
 
-The `page` field is the cut guide page number (not the PDF page number).
+The `page` field is the cut guide page number.
 
 ### assembly_data.py
 
@@ -119,4 +119,4 @@ BLOCKS = {
 
 ## Data Source
 
-Cut guides are printed booklets included with [Legit Kits](https://legitkits.com/) quilt kits. The PDF is created by scanning each page of the booklet. Pattern data is transcribed/extracted for personal organizational use.
+Cut guides are printed booklets included with [Legit Kits](https://legitkits.com/) quilt kits. Each page of the booklet is scanned as a PNG image. Pattern data is extracted for personal organizational use.

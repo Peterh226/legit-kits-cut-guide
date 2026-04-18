@@ -13,7 +13,7 @@ fabric_size   : Amount included in the kit (e.g. "Fat 1/8YD")
 piece_num     : Circled number on the layout diagram
 template_code : Template letter+number combination (e.g. "F3m")
 quantity      : Number of cuts needed — the number in parentheses on the guide
-page          : PDF page number the fabric appears on
+page          : Cut guide page number the fabric appears on
 
 To add a new pattern: append entries to DATA following the same tuple format,
 grouping by fabric code and adding a comment with the page number for reference.

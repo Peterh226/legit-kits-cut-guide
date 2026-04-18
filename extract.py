@@ -97,7 +97,7 @@ A fabric section has:
   - Quantity (the number in parentheses after the template code, e.g. F3m(3) means quantity 3; if absent use 1)
 
 IMPORTANT: The piece list is split across two areas of the page — read ALL of them.
-The page number is printed at the bottom (use the cut guide page number, not the PDF page).
+The page number is printed at the bottom of the cut guide page.
 
 Return ONLY a JSON array. Each element represents one piece row:
 [
