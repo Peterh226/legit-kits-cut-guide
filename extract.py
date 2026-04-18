@@ -84,7 +84,7 @@ def call_claude(client: anthropic.Anthropic, image_path: Path, prompt: str) -> s
     b64 = encode_image(image_path)
     msg = client.messages.create(
         model="claude-opus-4-7",
-        max_tokens=8192,
+        max_tokens=16000,
         messages=[
             {
                 "role": "user",
