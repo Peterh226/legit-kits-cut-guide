@@ -4,7 +4,8 @@ let patternData = null;
 let selectedBlock = null;
 let currentBlock = null;
 let currentAssy = null;
-let activeTab = null;  // 'cut' or 'assemble'
+let activeTab = null;      // 'cut' or 'assemble'
+let activeFrag = null;     // fragment id whose diagram is shown in cut tab
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 
@@ -77,7 +78,8 @@ function renderGrid(grid) {
 
 async function selectBlock(block_id) {
     selectedBlock = block_id;
-    activeTab = null;  // reset so default tab logic runs
+    activeTab = null;
+    activeFrag = null;
     document.querySelectorAll(".block").forEach(el => el.classList.remove("selected"));
     const el = document.getElementById(`block-${block_id}`);
     if (el) el.classList.add("selected");
@@ -138,43 +140,70 @@ function switchTab(tab) {
 function renderCutTab(block) {
     const allCut = block.fragments.every(f => f.cut);
 
-    const fragsHtml = block.fragments.map(f => `
-        <div class="fragment-row">
-            <span class="fragment-id">${f.id}</span>
+    // Sort fragments by piece count descending
+    const sorted = [...block.fragments].sort((a, b) => b.piece_count - a.piece_count);
+
+    const fragsHtml = sorted.map(f => {
+        const isActive = activeFrag === f.id;
+        return `
+        <div class="fragment-row ${f.cut ? "frag-cut" : ""}">
             <label class="check-group">
                 <input type="checkbox" ${f.cut ? "checked" : ""}
                     onchange="updateProgress('${block.id}','${f.id}','cut',this.checked)">
-                <span>Cut</span>
             </label>
+            <span class="fragment-id ${isActive ? "frag-active" : ""}"
+                onclick="toggleFragDiagram('${f.id}')">${f.id}</span>
+            <span class="frag-count">${f.piece_count} pc</span>
         </div>
-    `).join("");
-
-    let piecesHtml = "";
-    if (block.pieces && block.pieces.length > 0) {
-        const rows = block.pieces.map(p => `
-            <div class="piece-row">
-                <span class="p-num">${p.piece_num}</span>
-                <span class="p-code">${p.fabric_code} ${p.fabric_name}</span>
-                <span class="p-tmpl">${p.template}</span>
-                <span class="p-qty">×${p.quantity}</span>
-            </div>
-        `).join("");
-        piecesHtml = `
-            <div class="pieces-section">
-                <h3>Pieces (${block.pieces.length})</h3>
-                <div class="piece-row piece-row-header">
-                    <span>#</span><span>Fabric</span><span>Template</span><span>Qty</span>
-                </div>
-                ${rows}
-            </div>
-        `;
-    }
+        ${isActive && currentAssy ? renderFragDiagram(f.id) : ""}
+    `}).join("");
 
     const hint = allCut
         ? `<p class="tab-hint">All pieces cut — switch to <a href="#" onclick="switchTab('assemble');return false">Assemble</a>.</p>`
         : "";
 
-    return `<div class="fragment-list">${fragsHtml}</div>${hint}${piecesHtml}`;
+    return `<div class="fragment-list">${fragsHtml}</div>${hint}`;
+}
+
+function toggleFragDiagram(frag_id) {
+    activeFrag = activeFrag === frag_id ? null : frag_id;
+    // Re-render cut tab in place without full panel refresh
+    document.getElementById("tab-cut").innerHTML = renderCutTab(currentBlock);
+}
+
+function renderFragDiagram(frag_id) {
+    if (!currentAssy) return "";
+    const fragState = Object.fromEntries(currentBlock.fragments.map(f => [f.id, f]));
+    const [l, t, r, b] = currentAssy.bbox;
+
+    const highlight = `<rect x="${l}%" y="${t}%" width="${r - l}%" height="${b - t}%"
+        fill="rgba(233,69,96,0.06)" stroke="#e94560" stroke-width="1.5" stroke-dasharray="5 3"/>`;
+
+    const circles = currentAssy.circles.map(c => {
+        const isSelected = c.fragment_id === frag_id;
+        const state = fragState[c.fragment_id] || {};
+        const color = state.assembled ? "#4caf50" : "#2196f3";
+        const r_val = isSelected ? 18 : 10;
+        const opacity = isSelected ? 0.95 : 0.35;
+        const label = c.fragment_id.replace(/^[A-H]\d+/, "");
+        const fontSize = isSelected ? 11 : 8;
+        return `
+            <circle cx="${c.cx}%" cy="${c.cy}%" r="${r_val}"
+                fill="${isSelected ? "#e94560" : color}" fill-opacity="${opacity}"
+                stroke="#fff" stroke-width="${isSelected ? 2 : 1}"/>
+            <text x="${c.cx}%" y="${c.cy}%" text-anchor="middle" dominant-baseline="middle"
+                font-size="${fontSize}" font-weight="bold" fill="#fff" pointer-events="none"
+                font-family="Arial" opacity="${isSelected ? 1 : 0.6}">${label || c.fragment_id}</text>`;
+    }).join("");
+
+    return `
+        <div class="frag-diagram">
+            <div class="assy-img-wrap">
+                <img src="/static/assy/${currentAssy.image}" alt="Fragment diagram">
+                <svg xmlns="http://www.w3.org/2000/svg">${highlight}${circles}</svg>
+            </div>
+        </div>
+    `;
 }
 
 // ── Assemble tab ──────────────────────────────────────────────────────────
@@ -289,6 +318,7 @@ async function resetProgress() {
     currentBlock = null;
     currentAssy = null;
     activeTab = null;
+    activeFrag = null;
     document.getElementById("detail-panel").innerHTML =
         "<h2>Block Detail</h2><p class='detail-empty'>Click a block on the quilt to see its pieces and track progress.</p>";
     await refreshPattern();

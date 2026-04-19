@@ -208,14 +208,25 @@ def api_block(block_id):
     progress = load_progress()
     b = PATTERN["blocks"][block_id]
     bp = progress.get(block_id, {})
+
+    # Count total quantity of pieces per fragment
+    frag_qty = {f: 0 for f in b["fragments"]}
+    for piece in b["pieces"]:
+        tmpl = piece["template"]
+        for frag in b["fragments"]:
+            if tmpl == frag or tmpl.startswith(frag):
+                frag_qty[frag] += piece["quantity"]
+                break
+
     return jsonify({
-        "id":       block_id,
-        "status":   compute_block_status(block_id, progress),
+        "id":     block_id,
+        "status": compute_block_status(block_id, progress),
         "fragments": [
             {
-                "id":       f,
-                "cut":      bp.get(f, {}).get("cut", False),
-                "assembled": bp.get(f, {}).get("assembled", False),
+                "id":         f,
+                "cut":        bp.get(f, {}).get("cut", False),
+                "assembled":  bp.get(f, {}).get("assembled", False),
+                "piece_count": frag_qty.get(f, 0),
             }
             for f in b["fragments"]
         ],

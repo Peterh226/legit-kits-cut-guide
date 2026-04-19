@@ -195,30 +195,48 @@ main {
 .fragment-list { margin-bottom: 14px; }
 
 .fragment-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 6px 0;
     border-bottom: 1px solid #0f3460;
     font-size: 0.85rem;
 }
 
+.fragment-row.frag-cut .fragment-id { color: #4caf50; }
+
 .fragment-id {
     font-weight: bold;
-    width: 52px;
     color: #90caf9;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fragment-id:hover { text-decoration: underline; color: #fff; }
+.fragment-id.frag-active { color: #e94560; }
+
+.frag-count {
+    font-size: 0.75rem;
+    color: #666;
+    white-space: nowrap;
+}
+
+.frag-diagram {
+    margin: 6px 0 10px 28px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #0f3460;
 }
 
 .check-group {
     display: flex;
     align-items: center;
-    gap: 4px;
     cursor: pointer;
     user-select: none;
 }
 
 .check-group input { cursor: pointer; accent-color: #4caf50; }
-.check-group label { cursor: pointer; font-size: 0.8rem; color: #ccc; }
 
 .pieces-section { margin-top: 12px; }
 
