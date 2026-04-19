@@ -69,6 +69,7 @@ main {
     flex: 0 0 auto;
     padding: 12px;
     border-radius: 8px;
+    background: #16213e;
 }
 
 .quilt-labels {
