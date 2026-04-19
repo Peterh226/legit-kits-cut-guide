@@ -238,18 +238,18 @@ def api_block(block_id):
     b = PATTERN["blocks"][block_id]
     bp = progress.get(block_id, {})
 
-    # Count total quantity of pieces per fragment
+    # Count piece rows per fragment (one checkbox per row, not sum of quantities)
     frag_qty = {f: 0 for f in b["fragments"]}
     for piece in b["pieces"]:
         tmpl = piece["template"]
         for frag in b["fragments"]:
             if tmpl == frag:
-                frag_qty[frag] += piece["quantity"]
+                frag_qty[frag] += 1
                 break
             if tmpl.startswith(frag):
                 next_ch = tmpl[len(frag):]
                 if next_ch and next_ch[0].islower():
-                    frag_qty[frag] += piece["quantity"]
+                    frag_qty[frag] += 1
                     break
 
     return jsonify({
