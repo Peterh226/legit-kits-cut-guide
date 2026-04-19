@@ -170,8 +170,8 @@ function renderDetail(block, assy) {
         </div>
         <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
         <div class="detail-tabs">
-            <button class="tab-btn ${activeTab === "cut"      ? "active" : ""}" onclick="switchTab('cut')">Segments</button>
-            <button class="tab-btn ${activeTab === "assemble" ? "active" : ""}" onclick="switchTab('assemble')">Assemble</button>
+            <button class="tab-btn ${activeTab === "cut"      ? "active" : ""}" data-tab="cut"      onclick="switchTab('cut')">Segments</button>
+            <button class="tab-btn ${activeTab === "assemble" ? "active" : ""}" data-tab="assemble" onclick="switchTab('assemble')">Assemble</button>
         </div>
         <div id="tab-cut"      class="tab-content" style="display:${activeTab === "cut"      ? "block" : "none"}">${renderCutTab(block)}</div>
         <div id="tab-assemble" class="tab-content" style="display:${activeTab === "assemble" ? "block" : "none"}">${renderAssembleTab(block, assy)}</div>
@@ -181,7 +181,7 @@ function renderDetail(block, assy) {
 function switchTab(tab) {
     activeTab = tab;
     document.querySelectorAll(".tab-btn").forEach(b =>
-        b.classList.toggle("active", b.textContent.toLowerCase() === tab)
+        b.classList.toggle("active", b.dataset.tab === tab)
     );
     document.getElementById("tab-cut").style.display      = tab === "cut"      ? "block" : "none";
     document.getElementById("tab-assemble").style.display = tab === "assemble" ? "block" : "none";
@@ -285,15 +285,6 @@ function toggleFragDiagram(frag_id) {
 }
 
 async function toggleFragCut(block_id, frag_id, checked) {
-    // When header is checked, mark all pieces as cut in local state
-    if (checked) {
-        const fragPieces = (currentBlock.pieces || []).filter(p =>
-            matchesFrag(p.template, frag_id)
-        );
-        if (!pieceChecks[block_id]) pieceChecks[block_id] = {};
-        pieceChecks[block_id][frag_id] = {};
-        fragPieces.forEach(p => { pieceChecks[block_id][frag_id][p.piece_num] = true; });
-    }
     await updateProgress(block_id, frag_id, "cut", checked);
     await loadDetail(block_id);
 }
