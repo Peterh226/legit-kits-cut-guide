@@ -172,38 +172,19 @@ function toggleFragDiagram(frag_id) {
 }
 
 function renderFragDiagram(frag_id) {
-    if (!currentAssy) return "";
-    const fragState = Object.fromEntries(currentBlock.fragments.map(f => [f.id, f]));
-    const [l, t, r, b] = currentAssy.bbox;
+    // Find pieces for this fragment and get their unique cut guide pages
+    const fragPieces = (currentBlock.pieces || []).filter(p =>
+        p.template === frag_id || p.template.startsWith(frag_id)
+    );
+    if (!fragPieces.length) return "";
 
-    const highlight = `<rect x="${l}%" y="${t}%" width="${r - l}%" height="${b - t}%"
-        fill="rgba(233,69,96,0.06)" stroke="#e94560" stroke-width="1.5" stroke-dasharray="5 3"/>`;
-
-    const circles = currentAssy.circles.map(c => {
-        const isSelected = c.fragment_id === frag_id;
-        const state = fragState[c.fragment_id] || {};
-        const color = state.assembled ? "#4caf50" : "#2196f3";
-        const r_val = isSelected ? 18 : 10;
-        const opacity = isSelected ? 0.95 : 0.35;
-        const label = c.fragment_id.replace(/^[A-H]\d+/, "");
-        const fontSize = isSelected ? 11 : 8;
-        return `
-            <circle cx="${c.cx}%" cy="${c.cy}%" r="${r_val}"
-                fill="${isSelected ? "#e94560" : color}" fill-opacity="${opacity}"
-                stroke="#fff" stroke-width="${isSelected ? 2 : 1}"/>
-            <text x="${c.cx}%" y="${c.cy}%" text-anchor="middle" dominant-baseline="middle"
-                font-size="${fontSize}" font-weight="bold" fill="#fff" pointer-events="none"
-                font-family="Arial" opacity="${isSelected ? 1 : 0.6}">${label || c.fragment_id}</text>`;
+    const pages = [...new Set(fragPieces.map(p => p.page))].sort((a, b) => a - b);
+    const imgs = pages.map(pg => {
+        const filename = "cut_" + String(pg).padStart(3, "0") + ".jpg";
+        return `<img src="/static/cut/${filename}" alt="Cut guide page ${pg}" class="cut-guide-img">`;
     }).join("");
 
-    return `
-        <div class="frag-diagram">
-            <div class="assy-img-wrap">
-                <img src="/static/assy/${currentAssy.image}" alt="Fragment diagram">
-                <svg xmlns="http://www.w3.org/2000/svg">${highlight}${circles}</svg>
-            </div>
-        </div>
-    `;
+    return `<div class="frag-diagram">${imgs}</div>`;
 }
 
 // ── Assemble tab ──────────────────────────────────────────────────────────

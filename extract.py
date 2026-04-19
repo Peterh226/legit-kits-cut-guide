@@ -584,6 +584,14 @@ def main() -> None:
         if rows:
             write_cut_guide_data(rows, data_dir / "cut_guide_data.py")
 
+        # Copy cut images to quilt-tracker-app/static/cut/
+        static_cut = Path(__file__).parent / "quilt-tracker-app" / "static" / "cut"
+        static_cut.mkdir(parents=True, exist_ok=True)
+        cut_images = sorted_images(cut_folder)
+        for img in cut_images:
+            (static_cut / img.name).write_bytes(img.read_bytes())
+        print(f"Copied {len(cut_images)} cut images to {static_cut}")
+
     # --- Run downstream scripts ---
     print("\n=== Running generate.py ===")
     subprocess.run([sys.executable, "generate.py"], check=False)

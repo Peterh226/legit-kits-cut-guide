@@ -19,6 +19,9 @@ env/
 # Generated data (not committed — large or Pi-local)
 data/overview_data.json
 
+# Cut/assy source images are committed to static/ for Pi access
+# (no entries needed here — they are tracked)
+
 # macOS
 .DS_Store
 
