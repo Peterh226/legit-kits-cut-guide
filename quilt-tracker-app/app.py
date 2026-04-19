@@ -100,6 +100,7 @@ def load_pattern():
                 "piece_num":   piece_num,
                 "template":    tmpl,
                 "quantity":    qty,
+                "page":        page,
             })
 
     for block_id, frags in BLOCKS.items():
