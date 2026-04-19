@@ -282,6 +282,56 @@ main {
     font-style: italic;
 }
 
+/* ── Overview panel ── */
+.overview-progress-bar {
+    height: 10px;
+    background: #0f3460;
+    border-radius: 5px;
+    margin: 14px 0 6px;
+    overflow: hidden;
+}
+
+.overview-progress-fill {
+    height: 100%;
+    background: #4caf50;
+    border-radius: 5px;
+    transition: width 0.4s ease;
+}
+
+.overview-pct {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #4caf50;
+    margin-bottom: 18px;
+}
+
+.overview-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ov-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: #0f1f3c;
+}
+
+.ov-val {
+    font-size: 1.6rem;
+    font-weight: bold;
+    min-width: 36px;
+}
+
+.ov-label { font-size: 0.85rem; color: #888; }
+
+.ov-stat.complete   .ov-val { color: #4caf50; }
+.ov-stat.in_progress .ov-val { color: #ff9800; }
+.ov-stat.not_started .ov-val { color: #555; }
+
 /* ── Block summary ── */
 .block-header-row {
     display: flex;

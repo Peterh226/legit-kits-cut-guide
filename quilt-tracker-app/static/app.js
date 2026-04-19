@@ -35,6 +35,7 @@ async function refreshPattern() {
         if (el) el.textContent = "Started " + formatDate(patternData.start_date);
     }
     if (selectedBlock) await loadDetail(selectedBlock);
+    else renderOverview(patternData.stats);
 }
 
 function formatDate(iso) {
@@ -96,6 +97,15 @@ function renderGrid(grid) {
 // ── Block selection ───────────────────────────────────────────────────────
 
 async function selectBlock(block_id) {
+    // Click selected block again → return to overview
+    if (selectedBlock === block_id) {
+        selectedBlock = null;
+        activeTab = null;
+        activeFrag = null;
+        document.querySelectorAll(".block").forEach(el => el.classList.remove("selected"));
+        renderOverview(patternData.stats);
+        return;
+    }
     selectedBlock = block_id;
     activeTab = null;
     activeFrag = null;
@@ -170,6 +180,35 @@ function switchTab(tab) {
     );
     document.getElementById("tab-cut").style.display      = tab === "cut"      ? "block" : "none";
     document.getElementById("tab-assemble").style.display = tab === "assemble" ? "block" : "none";
+}
+
+// ── Overview panel ───────────────────────────────────────────────────────
+
+function renderOverview(stats) {
+    const panel = document.getElementById("detail-panel");
+    const pct = stats.pct_complete;
+    panel.innerHTML = `
+        <h2>Quilt Overview</h2>
+        <div class="overview-progress-bar">
+            <div class="overview-progress-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="overview-pct">${pct}% complete</div>
+        <div class="overview-stats">
+            <div class="ov-stat complete">
+                <span class="ov-val">${stats.complete}</span>
+                <span class="ov-label">of ${stats.total} blocks complete</span>
+            </div>
+            <div class="ov-stat in_progress">
+                <span class="ov-val">${stats.in_progress}</span>
+                <span class="ov-label">of ${stats.total} in progress</span>
+            </div>
+            <div class="ov-stat not_started">
+                <span class="ov-val">${stats.not_started}</span>
+                <span class="ov-label">of ${stats.total} not started</span>
+            </div>
+        </div>
+        <p class="tab-hint" style="margin-top:16px">Click any block to view details. Click again to return here.</p>
+    `;
 }
 
 // ── Template matching ─────────────────────────────────────────────────────
@@ -373,8 +412,7 @@ async function resetProgress() {
     activeTab = null;
     activeFrag = null;
     pieceChecks = {};
-    document.getElementById("detail-panel").innerHTML =
-        "<h2>Block Detail</h2><p class='detail-empty'>Click a block on the quilt to see its pieces and track progress.</p>";
+    renderOverview(data.stats);
     await refreshPattern();
 }
 
