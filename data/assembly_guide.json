@@ -1,0 +1,2364 @@
+{
+  "A4": {
+    "image": "assy_010.jpg",
+    "bbox": [
+      51,
+      3,
+      99,
+      52
+    ],
+    "circles": [
+      {
+        "fragment_id": "A4a",
+        "cx": 80,
+        "cy": 18
+      },
+      {
+        "fragment_id": "A4b",
+        "cx": 87,
+        "cy": 40
+      }
+    ],
+    "sewing_sequence": [
+      "Sew A4(a) to A4(b)"
+    ]
+  },
+  "A8": {
+    "image": "assy_010.jpg",
+    "bbox": [
+      3,
+      51,
+      51,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "A8a",
+        "cx": 28,
+        "cy": 68
+      },
+      {
+        "fragment_id": "A8b",
+        "cx": 42,
+        "cy": 93
+      }
+    ],
+    "sewing_sequence": [
+      "Sew A8(a) to A8(b)"
+    ]
+  },
+  "B3": {
+    "image": "assy_010.jpg",
+    "bbox": [
+      51,
+      51,
+      99,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "B3a",
+        "cx": 76,
+        "cy": 68
+      },
+      {
+        "fragment_id": "B3b",
+        "cx": 90,
+        "cy": 92
+      }
+    ],
+    "sewing_sequence": [
+      "Sew B3(a) to B3(b)"
+    ]
+  },
+  "B6": {
+    "image": "assy_011.jpg",
+    "bbox": [
+      51,
+      3,
+      99,
+      51
+    ],
+    "circles": [
+      {
+        "fragment_id": "B6a",
+        "cx": 87,
+        "cy": 13
+      },
+      {
+        "fragment_id": "B6b",
+        "cx": 67,
+        "cy": 25
+      },
+      {
+        "fragment_id": "B6c",
+        "cx": 58,
+        "cy": 44
+      }
+    ],
+    "sewing_sequence": [
+      "Sew B6(a) to B6(b)",
+      "Sew B6(ab) to B6(c)"
+    ]
+  },
+  "B7": {
+    "image": "assy_011.jpg",
+    "bbox": [
+      2,
+      51,
+      51,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "B7a",
+        "cx": 7,
+        "cy": 67
+      },
+      {
+        "fragment_id": "B7b",
+        "cx": 19,
+        "cy": 56
+      },
+      {
+        "fragment_id": "B7c",
+        "cx": 14,
+        "cy": 69
+      },
+      {
+        "fragment_id": "B7d",
+        "cx": 34,
+        "cy": 64
+      },
+      {
+        "fragment_id": "B7e",
+        "cx": 22,
+        "cy": 77
+      },
+      {
+        "fragment_id": "B7f",
+        "cx": 35,
+        "cy": 78
+      },
+      {
+        "fragment_id": "B7g",
+        "cx": 36,
+        "cy": 89
+      },
+      {
+        "fragment_id": "B7h",
+        "cx": 11,
+        "cy": 93
+      }
+    ],
+    "sewing_sequence": [
+      "Sew B7(b) to B7(c)",
+      "Sew B7(bc) to B7(d)",
+      "Sew B7(f) to B7(g)",
+      "Sew B7(e) to B7(fg)",
+      "Sew B7(bcd) to B7(efg)",
+      "Sew B7(a) to B7(b-g)",
+      "Sew B7(a-g) to B7(h)"
+    ]
+  },
+  "B8": {
+    "image": "assy_011.jpg",
+    "bbox": [
+      51,
+      51,
+      99,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "B8a",
+        "cx": 59,
+        "cy": 60
+      },
+      {
+        "fragment_id": "B8b",
+        "cx": 75,
+        "cy": 57
+      },
+      {
+        "fragment_id": "B8c",
+        "cx": 92,
+        "cy": 64
+      },
+      {
+        "fragment_id": "B8d",
+        "cx": 62,
+        "cy": 75
+      },
+      {
+        "fragment_id": "B8e",
+        "cx": 80,
+        "cy": 78
+      },
+      {
+        "fragment_id": "B8f",
+        "cx": 64,
+        "cy": 93
+      }
+    ],
+    "sewing_sequence": [
+      "Sew B8(a) to B8(b)",
+      "Sew B8(ab) to B8(c)",
+      "Sew B8(d) to B8(e)",
+      "Sew B8(de) to B8(f)",
+      "Sew B8(abc) to B8(def)"
+    ]
+  },
+  "C3": {
+    "image": "assy_012.jpg",
+    "bbox": [
+      50,
+      4,
+      99,
+      51
+    ],
+    "circles": [
+      {
+        "fragment_id": "C3a",
+        "cx": 86,
+        "cy": 19
+      },
+      {
+        "fragment_id": "C3b",
+        "cx": 65,
+        "cy": 42
+      }
+    ],
+    "sewing_sequence": [
+      "Sew C3(a) to C3(b)"
+    ]
+  },
+  "C6": {
+    "image": "assy_012.jpg",
+    "bbox": [
+      2,
+      51,
+      50,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "C6a",
+        "cx": 44,
+        "cy": 55
+      },
+      {
+        "fragment_id": "C6b",
+        "cx": 27,
+        "cy": 58
+      },
+      {
+        "fragment_id": "C6c",
+        "cx": 16,
+        "cy": 74
+      },
+      {
+        "fragment_id": "C6d",
+        "cx": 39,
+        "cy": 85
+      },
+      {
+        "fragment_id": "C6e",
+        "cx": 8,
+        "cy": 95
+      }
+    ],
+    "sewing_sequence": [
+      "Sew C6(a) to C6(b)",
+      "Sew C6(c) to C6(d)",
+      "Sew C6(cd) to C6(e)",
+      "Sew C6(ab) to C6(cde)"
+    ]
+  },
+  "C7": {
+    "image": "assy_012.jpg",
+    "bbox": [
+      50,
+      51,
+      99,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "C7a",
+        "cx": 59,
+        "cy": 66
+      },
+      {
+        "fragment_id": "C7b",
+        "cx": 81,
+        "cy": 62
+      },
+      {
+        "fragment_id": "C7c",
+        "cx": 91,
+        "cy": 77
+      },
+      {
+        "fragment_id": "C7d",
+        "cx": 63,
+        "cy": 78
+      },
+      {
+        "fragment_id": "C7e",
+        "cx": 72,
+        "cy": 93
+      },
+      {
+        "fragment_id": "C7f",
+        "cx": 89,
+        "cy": 88
+      }
+    ],
+    "sewing_sequence": [
+      "Sew C7(a) to C7(b)",
+      "Sew C7(ab) to C7(c)",
+      "Sew C7(d) to C7(e)",
+      "Sew C7(de) to C7(f)",
+      "Sew C7(abc) to C7(def)"
+    ]
+  },
+  "C8": {
+    "image": "assy_013.jpg",
+    "bbox": [
+      48,
+      4,
+      98,
+      52
+    ],
+    "circles": [
+      {
+        "fragment_id": "C8a",
+        "cx": 77,
+        "cy": 19
+      },
+      {
+        "fragment_id": "C8b",
+        "cx": 92,
+        "cy": 9
+      },
+      {
+        "fragment_id": "C8c",
+        "cx": 92,
+        "cy": 30
+      },
+      {
+        "fragment_id": "C8d",
+        "cx": 78,
+        "cy": 36
+      },
+      {
+        "fragment_id": "C8e",
+        "cx": 68,
+        "cy": 46
+      },
+      {
+        "fragment_id": "C8f",
+        "cx": 89,
+        "cy": 48
+      }
+    ],
+    "sewing_sequence": [
+      "Sew C8(a) to C8(b)",
+      "Sew C8(ab) to C8(c)",
+      "Sew C8(e) to C8(f)",
+      "Sew C8(abc) to C8(d)",
+      "Sew C8(a-d) to C8(ef)"
+    ]
+  },
+  "D2": {
+    "image": "assy_013.jpg",
+    "bbox": [
+      3,
+      52,
+      48,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "D2a",
+        "cx": 14,
+        "cy": 64
+      },
+      {
+        "fragment_id": "D2b",
+        "cx": 32,
+        "cy": 75
+      },
+      {
+        "fragment_id": "D2c",
+        "cx": 40,
+        "cy": 94
+      },
+      {
+        "fragment_id": "D2d",
+        "cx": 18,
+        "cy": 96
+      }
+    ],
+    "sewing_sequence": [
+      "Sew D2(b) to D2(c)",
+      "Sew D2(bc) to D2(d)",
+      "Sew D2(a) to D2(bcd)"
+    ]
+  },
+  "D5": {
+    "image": "assy_013.jpg",
+    "bbox": [
+      48,
+      52,
+      98,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "D5a",
+        "cx": 67,
+        "cy": 65
+      },
+      {
+        "fragment_id": "D5b",
+        "cx": 87,
+        "cy": 63
+      },
+      {
+        "fragment_id": "D5c",
+        "cx": 82,
+        "cy": 78
+      },
+      {
+        "fragment_id": "D5d",
+        "cx": 91,
+        "cy": 74
+      },
+      {
+        "fragment_id": "D5e",
+        "cx": 64,
+        "cy": 87
+      },
+      {
+        "fragment_id": "D5f",
+        "cx": 84,
+        "cy": 95
+      },
+      {
+        "fragment_id": "D5g",
+        "cx": 93,
+        "cy": 92
+      },
+      {
+        "fragment_id": "D5h",
+        "cx": 71,
+        "cy": 94
+      },
+      {
+        "fragment_id": "D5i",
+        "cx": 65,
+        "cy": 98
+      }
+    ],
+    "sewing_sequence": [
+      "Sew D5(c) to D5(d)",
+      "Sew D5(b) to D5(cd)",
+      "Sew D5(a) to D5(bcd)",
+      "Sew D5(a-d) to D5(e)",
+      "Sew D5(f) to D5(g)",
+      "Sew D5(a-e) to D5(fg)",
+      "Sew D5(h) to D5(i)",
+      "Sew D5(a-g) to D5(hi)"
+    ]
+  },
+  "D6": {
+    "image": "assy_014.jpg",
+    "bbox": [
+      41,
+      4,
+      98,
+      52
+    ],
+    "circles": [
+      {
+        "fragment_id": "D6a",
+        "cx": 77,
+        "cy": 37
+      },
+      {
+        "fragment_id": "D6b",
+        "cx": 90,
+        "cy": 10
+      }
+    ],
+    "sewing_sequence": [
+      "Sew D6(a) to D6(b)"
+    ]
+  },
+  "D7": {
+    "image": "assy_014.jpg",
+    "bbox": [
+      3,
+      51,
+      50,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "D7a",
+        "cx": 38,
+        "cy": 58
+      },
+      {
+        "fragment_id": "D7b",
+        "cx": 31,
+        "cy": 66
+      },
+      {
+        "fragment_id": "D7c",
+        "cx": 8,
+        "cy": 57
+      },
+      {
+        "fragment_id": "D7d",
+        "cx": 15,
+        "cy": 66
+      },
+      {
+        "fragment_id": "D7e",
+        "cx": 31,
+        "cy": 77
+      },
+      {
+        "fragment_id": "D7f",
+        "cx": 8,
+        "cy": 82
+      },
+      {
+        "fragment_id": "D7g",
+        "cx": 37,
+        "cy": 96
+      }
+    ],
+    "sewing_sequence": [
+      "Sew D7(c) to D7(d)",
+      "Sew D7(a) to D7(b)",
+      "Sew D7(ab) to D7(cd)",
+      "Sew D7(a-d) to D7(e)",
+      "Sew D7(a-e) to D7(f)",
+      "Sew D7(a-f) to D7(g)"
+    ]
+  },
+  "D8": {
+    "image": "assy_014.jpg",
+    "bbox": [
+      50,
+      51,
+      98,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "D8a",
+        "cx": 80,
+        "cy": 58
+      },
+      {
+        "fragment_id": "D8b",
+        "cx": 73,
+        "cy": 66
+      },
+      {
+        "fragment_id": "D8c",
+        "cx": 71,
+        "cy": 75
+      },
+      {
+        "fragment_id": "D8d",
+        "cx": 62,
+        "cy": 76
+      },
+      {
+        "fragment_id": "D8e",
+        "cx": 89,
+        "cy": 63
+      },
+      {
+        "fragment_id": "D8f",
+        "cx": 56,
+        "cy": 88
+      },
+      {
+        "fragment_id": "D8g",
+        "cx": 89,
+        "cy": 87
+      }
+    ],
+    "sewing_sequence": [
+      "Sew D8(a) to D8(b)",
+      "Sew D8(ab) to D8(c)",
+      "Sew D8(abc) to D8(d)",
+      "Sew D8(a-d) to D8(e)",
+      "Sew D8(f) to D8(g)",
+      "Sew D8(a-e) to D8(fg)"
+    ]
+  },
+  "E1": {
+    "image": "assy_015.jpg",
+    "bbox": [
+      45,
+      4,
+      99,
+      52
+    ],
+    "circles": [
+      {
+        "fragment_id": "E1a",
+        "cx": 57,
+        "cy": 10
+      },
+      {
+        "fragment_id": "E1b",
+        "cx": 73,
+        "cy": 7
+      },
+      {
+        "fragment_id": "E1c",
+        "cx": 89,
+        "cy": 11
+      },
+      {
+        "fragment_id": "E1d",
+        "cx": 76,
+        "cy": 23
+      },
+      {
+        "fragment_id": "E1e",
+        "cx": 68,
+        "cy": 34
+      },
+      {
+        "fragment_id": "E1f",
+        "cx": 74,
+        "cy": 38
+      },
+      {
+        "fragment_id": "E1g",
+        "cx": 65,
+        "cy": 42
+      },
+      {
+        "fragment_id": "E1h",
+        "cx": 76,
+        "cy": 46
+      },
+      {
+        "fragment_id": "E1i",
+        "cx": 81,
+        "cy": 42
+      },
+      {
+        "fragment_id": "E1j",
+        "cx": 89,
+        "cy": 44
+      },
+      {
+        "fragment_id": "E1k",
+        "cx": 94,
+        "cy": 32
+      }
+    ],
+    "sewing_sequence": [
+      "Sew E1(c) to E1(d)",
+      "Sew E1(b) to E1(cd)",
+      "Sew E1(f) to E1(g)",
+      "Sew E1(e) to E1(fg)",
+      "Sew E1(bcd) to E1(efg)",
+      "Sew E1(a) to E1(b-g)",
+      "Sew E1(h) to E1(i)",
+      "Sew E1(hi) to E1(j)",
+      "Sew E1(hij) to E1(k)",
+      "Sew E1(a-g) to E1(h-k)"
+    ]
+  },
+  "E2": {
+    "image": "assy_015.jpg",
+    "bbox": [
+      45,
+      52,
+      99,
+      98
+    ],
+    "circles": [
+      {
+        "fragment_id": "E2a",
+        "cx": 93,
+        "cy": 59
+      },
+      {
+        "fragment_id": "E2b",
+        "cx": 62,
+        "cy": 60
+      },
+      {
+        "fragment_id": "E2c",
+        "cx": 79,
+        "cy": 61
+      },
+      {
+        "fragment_id": "E2d",
+        "cx": 59,
+        "cy": 93
+      },
+      {
+        "fragment_id": "E2e",
+        "cx": 73,
+        "cy": 78
+      },
+      {
+        "fragment_id": "E2f",
+        "cx": 76,
+        "cy": 86
+      },
+      {
+        "fragment_id": "E2g",
+        "cx": 90,
+        "cy": 94
+      },
+      {
+        "fragment_id": "E2h",
+        "cx": 75,
+        "cy": 95
+      },
+      {
+        "fragment_id": "E2i",
+        "cx": 74,
+        "cy": 71
+      },
+      {
+        "fragment_id": "E2j",
+        "cx": 85,
+        "cy": 71
+      },
+      {
+        "fragment_id": "E2k",
+        "cx": 92,
+        "cy": 80
+      },
+      {
+        "fragment_id": "E2l",
+        "cx": 94,
+        "cy": 72
+      },
+      {
+        "fragment_id": "E2m",
+        "cx": 88,
+        "cy": 85
+      }
+    ],
+    "sewing_sequence": [
+      "Sew E2(b) to E2(c)",
+      "Sew E2(f) to E2(g)",
+      "Sew E2(fg) to E2(h)",
+      "Sew E2(e) to E2(fgh)",
+      "Sew E2(d) to E2(e-h)",
+      "Sew E2(j) to E2(k)",
+      "Sew E2(jk) to E2(l)",
+      "Sew E2(jkl) to E2(m)",
+      "Sew E2(i) to E2(j-m)",
+      "Sew E2(d-h) to E2(i-m)",
+      "Sew E2(bc) to E2(d-m)",
+      "Sew E2(a) to E2(b-m)"
+    ]
+  },
+  "E3": {
+    "image": "assy_016.jpg",
+    "bbox": [
+      45,
+      30,
+      98,
+      93
+    ],
+    "circles": [
+      {
+        "fragment_id": "E3a",
+        "cx": 74,
+        "cy": 40
+      },
+      {
+        "fragment_id": "E3b",
+        "cx": 89,
+        "cy": 54
+      },
+      {
+        "fragment_id": "E3c",
+        "cx": 61,
+        "cy": 57
+      },
+      {
+        "fragment_id": "E3d",
+        "cx": 63,
+        "cy": 73
+      },
+      {
+        "fragment_id": "E3e",
+        "cx": 76,
+        "cy": 80
+      },
+      {
+        "fragment_id": "E3f",
+        "cx": 82,
+        "cy": 68
+      },
+      {
+        "fragment_id": "E3h",
+        "cx": 91,
+        "cy": 74
+      },
+      {
+        "fragment_id": "E3i",
+        "cx": 94,
+        "cy": 87
+      }
+    ],
+    "sewing_sequence": [
+      "Sew E3(a) to E3(b)",
+      "Sew E3(c) to E3(d)",
+      "Sew E3(cd) to E3(e)",
+      "Sew E3(f) to E3(g)",
+      "Sew E3(fg) to E3(h)",
+      "Sew E3(fgh) to E3(i)",
+      "Sew E3(cde) to E3(f-i)",
+      "Sew E3(ab) to E3(c-i)"
+    ]
+  },
+  "E4": {
+    "image": "assy_017.jpg",
+    "bbox": [
+      3,
+      3,
+      73,
+      97
+    ],
+    "circles": [
+      {
+        "fragment_id": "E4a",
+        "cx": 43,
+        "cy": 13
+      },
+      {
+        "fragment_id": "E4b",
+        "cx": 28,
+        "cy": 26
+      },
+      {
+        "fragment_id": "E4c",
+        "cx": 20,
+        "cy": 40
+      },
+      {
+        "fragment_id": "E4d",
+        "cx": 25,
+        "cy": 54
+      },
+      {
+        "fragment_id": "E4e",
+        "cx": 55,
+        "cy": 25
+      },
+      {
+        "fragment_id": "E4f",
+        "cx": 61,
+        "cy": 39
+      },
+      {
+        "fragment_id": "E4g",
+        "cx": 49,
+        "cy": 34
+      },
+      {
+        "fragment_id": "E4h",
+        "cx": 34,
+        "cy": 44
+      },
+      {
+        "fragment_id": "E4i",
+        "cx": 44,
+        "cy": 38
+      },
+      {
+        "fragment_id": "E4j",
+        "cx": 47,
+        "cy": 46
+      },
+      {
+        "fragment_id": "E4k",
+        "cx": 38,
+        "cy": 62
+      },
+      {
+        "fragment_id": "E4l",
+        "cx": 50,
+        "cy": 70
+      },
+      {
+        "fragment_id": "E4m",
+        "cx": 58,
+        "cy": 52
+      },
+      {
+        "fragment_id": "E4n",
+        "cx": 42,
+        "cy": 85
+      },
+      {
+        "fragment_id": "E4o",
+        "cx": 60,
+        "cy": 78
+      },
+      {
+        "fragment_id": "E4p",
+        "cx": 63,
+        "cy": 87
+      },
+      {
+        "fragment_id": "E4q",
+        "cx": 10,
+        "cy": 68
+      },
+      {
+        "fragment_id": "E4r",
+        "cx": 17,
+        "cy": 60
+      },
+      {
+        "fragment_id": "E4s",
+        "cx": 22,
+        "cy": 85
+      }
+    ],
+    "sewing_sequence": [
+      "Sew E4(a) to E4(b)",
+      "Sew E4(ab) to E4(c)",
+      "Sew E4(h) to E4(i)",
+      "Sew E4(hi) to E4(j)",
+      "Sew E4(hij) to E4(k)",
+      "Sew E4(g) to E4(h-k)",
+      "Sew E4(l) to E4(m)",
+      "Sew E4(g-k) to E4(lm)",
+      "Sew E4(f) to E4(g-m)",
+      "Sew E4(e) to E4(f-m)",
+      "Sew E4(d) to E4(e-m)",
+      "Sew E4(abc) to E4(d-m)",
+      "Sew E4(a-m) to E4(n)",
+      "Sew E4(o) to E4(p)",
+      "Sew E4(a-n) to E4(op)",
+      "Sew E4(q) to E4(r)",
+      "Sew E4(qr) to E4(s)",
+      "Sew E4(a-p) to E4(qrs)"
+    ]
+  },
+  "E5": {
+    "image": "assy_018.jpg",
+    "bbox": [
+      0,
+      2,
+      77,
+      94
+    ],
+    "circles": [
+      {
+        "fragment_id": "E5a",
+        "cx": 7,
+        "cy": 10
+      },
+      {
+        "fragment_id": "E5b",
+        "cx": 18,
+        "cy": 22
+      },
+      {
+        "fragment_id": "E5c",
+        "cx": 32,
+        "cy": 36
+      },
+      {
+        "fragment_id": "E5d",
+        "cx": 8,
+        "cy": 53
+      },
+      {
+        "fragment_id": "E5e",
+        "cx": 20,
+        "cy": 48
+      },
+      {
+        "fragment_id": "E5f",
+        "cx": 14,
+        "cy": 64
+      },
+      {
+        "fragment_id": "E5g",
+        "cx": 27,
+        "cy": 54
+      },
+      {
+        "fragment_id": "E5h",
+        "cx": 48,
+        "cy": 36
+      },
+      {
+        "fragment_id": "E5i",
+        "cx": 21,
+        "cy": 75
+      },
+      {
+        "fragment_id": "E5j",
+        "cx": 42,
+        "cy": 70
+      },
+      {
+        "fragment_id": "E5k",
+        "cx": 32,
+        "cy": 74
+      },
+      {
+        "fragment_id": "E5l",
+        "cx": 53,
+        "cy": 61
+      },
+      {
+        "fragment_id": "E5m",
+        "cx": 62,
+        "cy": 17
+      },
+      {
+        "fragment_id": "E5n",
+        "cx": 10,
+        "cy": 85
+      },
+      {
+        "fragment_id": "E5o",
+        "cx": 64,
+        "cy": 82
+      }
+    ],
+    "sewing_sequence": [
+      "Sew E5(a) to E5(b)",
+      "Sew E5(ab) to E5(c)",
+      "Sew E5(d) to E5(e)",
+      "Sew E5(f) to E5(g)",
+      "Sew E5(de) to E5(fg)",
+      "Sew E5(abc) to E5(d-g)",
+      "Sew E5(a-g) to E5(h)",
+      "Sew E5(j) to E5(k)",
+      "Sew E5(i) to E5(jk)",
+      "Sew E5(ijk) to E5(l)",
+      "Sew E5(a-h) to E5(i-l)",
+      "Sew E5(a-l) to E5(m)",
+      "Sew E5(n) to E5(o)",
+      "Sew E5(a-m) to E5(no)"
+    ]
+  },
+  "E6": {
+    "image": "assy_019.jpg",
+    "bbox": [
+      51,
+      4,
+      99,
+      51
+    ],
+    "circles": [
+      {
+        "fragment_id": "E6a",
+        "cx": 91,
+        "cy": 11
+      },
+      {
+        "fragment_id": "E6b",
+        "cx": 59,
+        "cy": 14
+      },
+      {
+        "fragment_id": "E6c",
+        "cx": 64,
+        "cy": 22
+      },
+      {
+        "fragment_id": "E6d",
+        "cx": 87,
+        "cy": 24
+      },
+      {
+        "fragment_id": "E6e",
+        "cx": 82,
+        "cy": 32
+      },
+      {
+        "fragment_id": "E6f",
+        "cx": 63,
+        "cy": 42
+      },
+      {
+        "fragment_id": "E6g",
+        "cx": 92,
+        "cy": 43
+      }
+    ],
+    "sewing_sequence": [
+      "Sew E6(a) to E6(b)",
+      "Sew E6(c) to E6(d)",
+      "Sew E6(cd) to E6(e)",
+      "Sew E6(cde) to E6(f)",
+      "Sew E6(ab) to E6(c-f)",
+      "Sew E6(a-f) to E6(g)"
+    ]
+  },
+  "E7": {
+    "image": "assy_019.jpg",
+    "bbox": [
+      2,
+      50,
+      51,
+      97
+    ],
+    "circles": [
+      {
+        "fragment_id": "E7a",
+        "cx": 8,
+        "cy": 54
+      },
+      {
+        "fragment_id": "E7b",
+        "cx": 29,
+        "cy": 66
+      },
+      {
+        "fragment_id": "E7c",
+        "cx": 7,
+        "cy": 77
+      },
+      {
+        "fragment_id": "E7d",
+        "cx": 13,
+        "cy": 71
+      },
+      {
+        "fragment_id": "E7e",
+        "cx": 21,
+        "cy": 78
+      },
+      {
+        "fragment_id": "E7f",
+        "cx": 9,
+        "cy": 82
+      },
+      {
+        "fragment_id": "E7g",
+        "cx": 18,
+        "cy": 86
+      },
+      {
+        "fragment_id": "E7h",
+        "cx": 24,
+        "cy": 83
+      },
+      {
+        "fragment_id": "E7i",
+        "cx": 37,
+        "cy": 78
+      },
+      {
+        "fragment_id": "E7j",
+        "cx": 38,
+        "cy": 87
+      },
+      {
+        "fragment_id": "E7k",
+        "cx": 11,
+        "cy": 93
+      }
+    ],
+    "sewing_sequence": [
+      "Sew E7(c) to E7(d)",
+      "Sew E7(cd) to E7(e)",
+      "Sew E7(cde) to E7(f)",
+      "Sew E7(b) to E7(c-f)",
+      "Sew E7(a) to E7(b-f)",
+      "Sew E7(g) to E7(h)",
+      "Sew E7(i) to E7(j)",
+      "Sew E7(gh) to E7(ij)",
+      "Sew E7(a-f) to E7(g-j)",
+      "Sew E7(a-j) to E7(k)"
+    ]
+  },
+  "E8": {
+    "image": "assy_019.jpg",
+    "bbox": [
+      51,
+      50,
+      99,
+      97
+    ],
+    "circles": [
+      {
+        "fragment_id": "E8a",
+        "cx": 81,
+        "cy": 69
+      },
+      {
+        "fragment_id": "E8b",
+        "cx": 61,
+        "cy": 94
+      }
+    ],
+    "sewing_sequence": [
+      "Sew E8(a) to E8(b)"
+    ]
+  },
+  "F1": {
+    "image": "assy_020.jpg",
+    "bbox": [
+      42,
+      3,
+      98,
+      52
+    ],
+    "circles": [
+      {
+        "fragment_id": "F1a",
+        "cx": 48,
+        "cy": 6
+      },
+      {
+        "fragment_id": "F1b",
+        "cx": 56,
+        "cy": 6
+      },
+      {
+        "fragment_id": "F1c",
+        "cx": 63,
+        "cy": 6
+      },
+      {
+        "fragment_id": "F1d",
+        "cx": 75,
+        "cy": 10
+      },
+      {
+        "fragment_id": "F1e",
+        "cx": 66,
+        "cy": 19
+      },
+      {
+        "fragment_id": "F1f",
+        "cx": 69,
+        "cy": 23
+      },
+      {
+        "fragment_id": "F1g",
+        "cx": 60,
+        "cy": 29
+      },
+      {
+        "fragment_id": "F1h",
+        "cx": 67,
+        "cy": 29
+      },
+      {
+        "fragment_id": "F1i",
+        "cx": 85,
+        "cy": 10
+      },
+      {
+        "fragment_id": "F1j",
+        "cx": 80,
+        "cy": 20
+      },
+      {
+        "fragment_id": "F1k",
+        "cx": 79,
+        "cy": 38
+      },
+      {
+        "fragment_id": "F1l",
+        "cx": 68,
+        "cy": 46
+      },
+      {
+        "fragment_id": "F1m",
+        "cx": 89,
+        "cy": 46
+      }
+    ],
+    "sewing_sequence": [
+      "Sew F1(a) to F1(b)",
+      "Sew F1(c) to F1(d)",
+      "Sew F1(cd) to F1(e)",
+      "Sew F1(cde) to F1(f)",
+      "Sew F1(g) to F1(h)",
+      "Sew F1(c-f) to F1(gh)",
+      "Sew F1(ab) to F1(c-h)",
+      "Sew F1(j) to F1(k)",
+      "Sew F1(i) to F1(jk)",
+      "Sew F1(ijk) to F1(l)",
+      "Sew F1(i-l) to F1(m)",
+      "Sew F1(a-h) to F1(i-m)"
+    ]
+  },
+  "F2": {
+    "image": "assy_020.jpg",
+    "bbox": [
+      42,
+      53,
+      98,
+      98
+    ],
+    "circles": [
+      {
+        "fragment_id": "F2a",
+        "cx": 57,
+        "cy": 92
+      },
+      {
+        "fragment_id": "F2b",
+        "cx": 71,
+        "cy": 92
+      },
+      {
+        "fragment_id": "F2c",
+        "cx": 65,
+        "cy": 60
+      },
+      {
+        "fragment_id": "F2d",
+        "cx": 78,
+        "cy": 73
+      },
+      {
+        "fragment_id": "F2e",
+        "cx": 89,
+        "cy": 63
+      }
+    ],
+    "sewing_sequence": [
+      "Sew F2(a) to F2(b)",
+      "Sew F2(c) to F2(d)",
+      "Sew F2(ab) to F2(cd)",
+      "Sew F2(a-d) to F2(e)"
+    ]
+  },
+  "F3": {
+    "sewing_sequence": [
+      "Sew F3(b) to F3(c)",
+      "Sew F3(bc) to F3(d)",
+      "Sew F3(e) to F3(f)",
+      "Sew F3(g) to F3(h)",
+      "Sew F3(gh) to F3(i)",
+      "Sew F3(ghi) to F3(j)",
+      "Sew F3(ghij) to F3(k)",
+      "Sew F3(ef) to F3(ghijk)",
+      "Sew F3(bcd) to F3(efghijk)",
+      "Sew F3(l) to F3(bcdefghijk)",
+      "Sew F3(m) to F3(n)",
+      "Sew F3(mn) to F3(o)",
+      "Sew F3(p) to F3(mno)",
+      "Sew F3(q) to F3(mnop)",
+      "Sew F3(r) to F3(s)",
+      "Sew F3(mnopq) to F3(rs)",
+      "Sew F3(bcdefghijkl) to F3(mnopqrs)",
+      "Sew F3(t) to F3(bcdefghijklmnopqrs)",
+      "Sew F3(a) to F3(t...)",
+      "Sew F3(u) to F3(at...)",
+      "Sew F3(v) to F3(aut...)"
+    ],
+    "instruction_image": "assy_021.jpg",
+    "image": "assy_022.jpg",
+    "bbox": [
+      3,
+      2,
+      99,
+      98
+    ],
+    "circles": [
+      {
+        "fragment_id": "F3b",
+        "cx": 21,
+        "cy": 9
+      },
+      {
+        "fragment_id": "F3c",
+        "cx": 41,
+        "cy": 36
+      },
+      {
+        "fragment_id": "F3e",
+        "cx": 66,
+        "cy": 11
+      },
+      {
+        "fragment_id": "F3f",
+        "cx": 82,
+        "cy": 9
+      },
+      {
+        "fragment_id": "F3j",
+        "cx": 91,
+        "cy": 18
+      },
+      {
+        "fragment_id": "F3i",
+        "cx": 83,
+        "cy": 22
+      },
+      {
+        "fragment_id": "F3h",
+        "cx": 80,
+        "cy": 27
+      },
+      {
+        "fragment_id": "F3k",
+        "cx": 93,
+        "cy": 29
+      },
+      {
+        "fragment_id": "F3d",
+        "cx": 72,
+        "cy": 34
+      },
+      {
+        "fragment_id": "F3g",
+        "cx": 83,
+        "cy": 34
+      },
+      {
+        "fragment_id": "F3l",
+        "cx": 82,
+        "cy": 44
+      },
+      {
+        "fragment_id": "F3m",
+        "cx": 71,
+        "cy": 52
+      },
+      {
+        "fragment_id": "F3n",
+        "cx": 84,
+        "cy": 54
+      },
+      {
+        "fragment_id": "F3o",
+        "cx": 79,
+        "cy": 58
+      },
+      {
+        "fragment_id": "F3q",
+        "cx": 77,
+        "cy": 61
+      },
+      {
+        "fragment_id": "F3p",
+        "cx": 91,
+        "cy": 60
+      },
+      {
+        "fragment_id": "F3r",
+        "cx": 82,
+        "cy": 72
+      },
+      {
+        "fragment_id": "F3s",
+        "cx": 91,
+        "cy": 76
+      },
+      {
+        "fragment_id": "F3a",
+        "cx": 12,
+        "cy": 77
+      },
+      {
+        "fragment_id": "F3t",
+        "cx": 63,
+        "cy": 65
+      },
+      {
+        "fragment_id": "F3u",
+        "cx": 41,
+        "cy": 82
+      },
+      {
+        "fragment_id": "F3v",
+        "cx": 90,
+        "cy": 92
+      }
+    ]
+  },
+  "F4": {
+    "sewing_sequence": [
+      "Sew F4(c) to F4(d)",
+      "Sew F4(cd) to F4(e)",
+      "Sew F4(f) to F4(cde)",
+      "Sew F4(h) to F4(i)",
+      "Sew F4(hi) to F4(cdef)",
+      "Sew F4(j) to F4(cdefhi)",
+      "Sew F4(g) to F4(cdefhij)",
+      "Sew F4(a) to F4(cdefghij)",
+      "Sew F4(b) to F4(acdefghij)",
+      "Sew F4(l) to F4(abcdefghij)",
+      "Sew F4(k) to F4(abcdefghijl)",
+      "Sew F4(n) to F4(abcdefghijkl)",
+      "Sew F4(m) to F4(abcdefghijkln)",
+      "Sew F4(o) to F4(abcdefghijklmn)",
+      "Sew F4(p) to F4(abcdefghijklmno)",
+      "Sew F4(q) to F4(abcdefghijklmnop)",
+      "Sew F4(s) to F4(abcdefghijklmnopq)",
+      "Sew F4(u) to F4(abcdefghijklmnopqs)",
+      "Sew F4(r) to F4(abcdefghijklmnopqsu)",
+      "Sew F4(v) to F4(abcdefghijklmnopqrsu)",
+      "Sew F4(t) to F4(abcdefghijklmnopqrsuv)",
+      "Sew F4(w) to F4(abcdefghijklmnopqrstuv)"
+    ],
+    "instruction_image": "assy_023.jpg",
+    "image": "assy_024.jpg",
+    "bbox": [
+      3,
+      3,
+      97,
+      97
+    ],
+    "circles": [
+      {
+        "fragment_id": "F4a",
+        "cx": 11,
+        "cy": 9
+      },
+      {
+        "fragment_id": "F4g",
+        "cx": 26,
+        "cy": 10
+      },
+      {
+        "fragment_id": "F4f",
+        "cx": 21,
+        "cy": 14
+      },
+      {
+        "fragment_id": "F4c",
+        "cx": 18,
+        "cy": 19
+      },
+      {
+        "fragment_id": "F4e",
+        "cx": 25,
+        "cy": 18
+      },
+      {
+        "fragment_id": "F4d",
+        "cx": 20,
+        "cy": 22
+      },
+      {
+        "fragment_id": "F4h",
+        "cx": 22,
+        "cy": 26
+      },
+      {
+        "fragment_id": "F4i",
+        "cx": 28,
+        "cy": 25
+      },
+      {
+        "fragment_id": "F4j",
+        "cx": 40,
+        "cy": 14
+      },
+      {
+        "fragment_id": "F4b",
+        "cx": 12,
+        "cy": 28
+      },
+      {
+        "fragment_id": "F4l",
+        "cx": 26,
+        "cy": 33
+      },
+      {
+        "fragment_id": "F4q",
+        "cx": 62,
+        "cy": 19
+      },
+      {
+        "fragment_id": "F4r",
+        "cx": 87,
+        "cy": 21
+      },
+      {
+        "fragment_id": "F4v",
+        "cx": 89,
+        "cy": 32
+      },
+      {
+        "fragment_id": "F4k",
+        "cx": 13,
+        "cy": 40
+      },
+      {
+        "fragment_id": "F4m",
+        "cx": 30,
+        "cy": 39
+      },
+      {
+        "fragment_id": "F4s",
+        "cx": 44,
+        "cy": 40
+      },
+      {
+        "fragment_id": "F4t",
+        "cx": 67,
+        "cy": 47
+      },
+      {
+        "fragment_id": "F4u",
+        "cx": 83,
+        "cy": 53
+      },
+      {
+        "fragment_id": "F4o",
+        "cx": 42,
+        "cy": 55
+      },
+      {
+        "fragment_id": "F4n",
+        "cx": 22,
+        "cy": 66
+      },
+      {
+        "fragment_id": "F4p",
+        "cx": 57,
+        "cy": 73
+      },
+      {
+        "fragment_id": "F4w",
+        "cx": 22,
+        "cy": 90
+      }
+    ]
+  },
+  "F5": {
+    "image": "assy_025.jpg",
+    "bbox": [
+      44,
+      4,
+      98,
+      51
+    ],
+    "circles": [
+      {
+        "fragment_id": "F5a",
+        "cx": 91,
+        "cy": 8
+      },
+      {
+        "fragment_id": "F5b",
+        "cx": 73,
+        "cy": 9
+      },
+      {
+        "fragment_id": "F5c",
+        "cx": 84,
+        "cy": 24
+      },
+      {
+        "fragment_id": "F5e",
+        "cx": 59,
+        "cy": 27
+      },
+      {
+        "fragment_id": "F5f",
+        "cx": 72,
+        "cy": 29
+      },
+      {
+        "fragment_id": "F5d",
+        "cx": 54,
+        "cy": 38
+      },
+      {
+        "fragment_id": "F5g",
+        "cx": 75,
+        "cy": 38
+      },
+      {
+        "fragment_id": "F5i",
+        "cx": 89,
+        "cy": 38
+      },
+      {
+        "fragment_id": "F5h",
+        "cx": 82,
+        "cy": 48
+      }
+    ],
+    "sewing_sequence": [
+      "Sew F5(a) to F5(b)",
+      "Sew F5(ab) to F5(c)",
+      "Sew F5(d) to F5(e)",
+      "Sew F5(f) to F5(g)",
+      "Sew F5(de) to F5(fg)",
+      "Sew F5(d-g) to F5(h)",
+      "Sew F5(d-h) to F5(i)",
+      "Sew F5(abc) to F5(d-i)"
+    ]
+  },
+  "F6": {
+    "image": "assy_025.jpg",
+    "bbox": [
+      44,
+      52,
+      98,
+      98
+    ],
+    "circles": [
+      {
+        "fragment_id": "F6a",
+        "cx": 60,
+        "cy": 60
+      },
+      {
+        "fragment_id": "F6b",
+        "cx": 85,
+        "cy": 66
+      },
+      {
+        "fragment_id": "F6c",
+        "cx": 66,
+        "cy": 79
+      },
+      {
+        "fragment_id": "F6e",
+        "cx": 90,
+        "cy": 85
+      },
+      {
+        "fragment_id": "F6d",
+        "cx": 84,
+        "cy": 91
+      },
+      {
+        "fragment_id": "F6f",
+        "cx": 53,
+        "cy": 95
+      }
+    ],
+    "sewing_sequence": [
+      "Sew F6(d) to F6(e)",
+      "Sew F6(c) to F6(de)",
+      "Sew F6(b) to F6(cde)",
+      "Sew F6(a) to F6(b-e)",
+      "Sew F6(a-e) to F6(f)"
+    ]
+  },
+  "F7": {
+    "image": "assy_026.jpg",
+    "bbox": [
+      42,
+      3,
+      99,
+      51
+    ],
+    "circles": [
+      {
+        "fragment_id": "F7a",
+        "cx": 94,
+        "cy": 8
+      },
+      {
+        "fragment_id": "F7b",
+        "cx": 59,
+        "cy": 11
+      },
+      {
+        "fragment_id": "F7c",
+        "cx": 91,
+        "cy": 17
+      },
+      {
+        "fragment_id": "F7d",
+        "cx": 78,
+        "cy": 22
+      },
+      {
+        "fragment_id": "F7e",
+        "cx": 92,
+        "cy": 33
+      },
+      {
+        "fragment_id": "F7f",
+        "cx": 95,
+        "cy": 29
+      },
+      {
+        "fragment_id": "F7g",
+        "cx": 71,
+        "cy": 40
+      }
+    ],
+    "sewing_sequence": [
+      "Sew F7(d) to F7(e)",
+      "Sew F7(de) to F7(f)",
+      "Sew F7(c) to F7(def)",
+      "Sew F7(b) to F7(c-f)",
+      "Sew F7(a) to F7(b-f)",
+      "Sew F7(a-f) to F7(g)"
+    ]
+  },
+  "F8": {
+    "image": "assy_026.jpg",
+    "bbox": [
+      42,
+      51,
+      99,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "F8a",
+        "cx": 94,
+        "cy": 57
+      },
+      {
+        "fragment_id": "F8b",
+        "cx": 80,
+        "cy": 57
+      },
+      {
+        "fragment_id": "F8c",
+        "cx": 59,
+        "cy": 60
+      },
+      {
+        "fragment_id": "F8d",
+        "cx": 69,
+        "cy": 66
+      },
+      {
+        "fragment_id": "F8e",
+        "cx": 85,
+        "cy": 63
+      },
+      {
+        "fragment_id": "F8f",
+        "cx": 79,
+        "cy": 66
+      },
+      {
+        "fragment_id": "F8g",
+        "cx": 93,
+        "cy": 71
+      },
+      {
+        "fragment_id": "F8h",
+        "cx": 78,
+        "cy": 74
+      },
+      {
+        "fragment_id": "F8i",
+        "cx": 59,
+        "cy": 74
+      },
+      {
+        "fragment_id": "F8j",
+        "cx": 62,
+        "cy": 82
+      },
+      {
+        "fragment_id": "F8k",
+        "cx": 82,
+        "cy": 84
+      },
+      {
+        "fragment_id": "F8l",
+        "cx": 94,
+        "cy": 84
+      },
+      {
+        "fragment_id": "F8m",
+        "cx": 94,
+        "cy": 95
+      },
+      {
+        "fragment_id": "F8n",
+        "cx": 82,
+        "cy": 95
+      },
+      {
+        "fragment_id": "F8o",
+        "cx": 67,
+        "cy": 91
+      },
+      {
+        "fragment_id": "F8p",
+        "cx": 55,
+        "cy": 96
+      }
+    ],
+    "sewing_sequence": [
+      "Sew F8(b) to F8(c)",
+      "Sew F8(bc) to F8(d)",
+      "Sew F8(f) to F8(g)",
+      "Sew F8(e) to F8(fg)",
+      "Sew F8(efg) to F8(h)",
+      "Sew F8(bcd) to F8(e-h)",
+      "Sew F8(a) to F8(b-h)",
+      "Sew F8(a-h) to F8(i)",
+      "Sew F8(k) to F8(l)",
+      "Sew F8(kl) to F8(m)",
+      "Sew F8(klm) to F8(n)",
+      "Sew F8(k-n) to F8(o)",
+      "Sew F8(k-o) to F8(p)",
+      "Sew F8(j) to F8(k-p)",
+      "Sew F8(a-i) to F8(j-p)"
+    ]
+  },
+  "G1": {
+    "image": "assy_027.jpg",
+    "bbox": [
+      39,
+      3,
+      98,
+      53
+    ],
+    "circles": [
+      {
+        "fragment_id": "G1a",
+        "cx": 50,
+        "cy": 9
+      },
+      {
+        "fragment_id": "G1d",
+        "cx": 77,
+        "cy": 11
+      },
+      {
+        "fragment_id": "G1e",
+        "cx": 88,
+        "cy": 22
+      },
+      {
+        "fragment_id": "G1c",
+        "cx": 70,
+        "cy": 36
+      },
+      {
+        "fragment_id": "G1f",
+        "cx": 85,
+        "cy": 37
+      },
+      {
+        "fragment_id": "G1b",
+        "cx": 51,
+        "cy": 42
+      },
+      {
+        "fragment_id": "G1g",
+        "cx": 93,
+        "cy": 47
+      }
+    ],
+    "sewing_sequence": [
+      "Sew G1(b) to G1(c)",
+      "Sew G1(bc) to G1(d)",
+      "Sew G1(a) to G1(bcd)",
+      "Sew G1(e) to G1(f)",
+      "Sew G1(a-d) to G1(ef)",
+      "Sew G1(a-f) to G1(g)"
+    ]
+  },
+  "G2": {
+    "image": "assy_027.jpg",
+    "bbox": [
+      2,
+      52,
+      51,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "G2c",
+        "cx": 11,
+        "cy": 64
+      },
+      {
+        "fragment_id": "G2b",
+        "cx": 22,
+        "cy": 64
+      },
+      {
+        "fragment_id": "G2a",
+        "cx": 33,
+        "cy": 60
+      },
+      {
+        "fragment_id": "G2f",
+        "cx": 33,
+        "cy": 76
+      },
+      {
+        "fragment_id": "G2d",
+        "cx": 6,
+        "cy": 86
+      },
+      {
+        "fragment_id": "G2e",
+        "cx": 13,
+        "cy": 86
+      },
+      {
+        "fragment_id": "G2g",
+        "cx": 35,
+        "cy": 93
+      }
+    ],
+    "sewing_sequence": [
+      "Sew G2(a) to G2(b)",
+      "Sew G2(c) to G2(d)",
+      "Sew G2(cd) to G2(e)",
+      "Sew G2(ab) to G2(cde)",
+      "Sew G2(a-e) to G2(f)",
+      "Sew G2(a-f) to G2(g)"
+    ]
+  },
+  "G3": {
+    "image": "assy_027.jpg",
+    "bbox": [
+      51,
+      52,
+      98,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "G3a",
+        "cx": 71,
+        "cy": 67
+      },
+      {
+        "fragment_id": "G3b",
+        "cx": 85,
+        "cy": 86
+      }
+    ],
+    "sewing_sequence": [
+      "Sew G3(a) to G3(b)"
+    ]
+  },
+  "G6": {
+    "image": "assy_028.jpg",
+    "bbox": [
+      40,
+      3,
+      99,
+      53
+    ],
+    "circles": [
+      {
+        "fragment_id": "G6a",
+        "cx": 50,
+        "cy": 9
+      },
+      {
+        "fragment_id": "G6b",
+        "cx": 84,
+        "cy": 18
+      },
+      {
+        "fragment_id": "G6c",
+        "cx": 89,
+        "cy": 30
+      },
+      {
+        "fragment_id": "G6d",
+        "cx": 65,
+        "cy": 38
+      }
+    ],
+    "sewing_sequence": [
+      "Sew G6(b) to G6(c)",
+      "Sew G6(bc) to G6(d)",
+      "Sew G6(a) to G6(bcd)"
+    ]
+  },
+  "G7": {
+    "sewing_sequence": [
+      "Sew G7(b) to G7(c)",
+      "Sew G7(bc) to G7(d)",
+      "Sew G7(bcd) to G7(e)",
+      "Sew G7(bcde) to G7(f)",
+      "Sew G7(bcdef) to G7(g)",
+      "Sew G7(bcdefg) to G7(a)",
+      "Sew G7(abcdefg) to G7(h)",
+      "Sew G7(abcdefgh) to G7(i)",
+      "Sew G7(abcdefghi) to G7(j)",
+      "Sew G7(abcdefghij) to G7(k)",
+      "Sew G7(abcdefghijk) to G7(r)",
+      "Sew G7(abcdefghijkr) to G7(n)",
+      "Sew G7(abcdefghijknr) to G7(o)",
+      "Sew G7(abcdefghijknor) to G7(p)",
+      "Sew G7(abcdefghijknopr) to G7(m)",
+      "Sew G7(abcdefghijkmnopr) to G7(q)",
+      "Sew G7(abcdefghijkmnopqr) to G7(s)",
+      "Sew G7(abcdefghijkmnopqrs) to G7(t)",
+      "Sew G7(abcdefghijkmnopqrst) to G7(u)",
+      "Sew G7(abcdefghijkmnopqrstu) to G7(l)",
+      "Sew G7(abcdefghijklmnopqrstu) to G7(w)",
+      "Sew G7(abcdefghijklmnopqrstuw) to G7(v)",
+      "Sew G7(abcdefghijklmnopqrstuvw) to G7(x)"
+    ],
+    "instruction_image": "assy_028.jpg",
+    "image": "assy_029.jpg",
+    "bbox": [
+      3,
+      2,
+      97,
+      98
+    ],
+    "circles": [
+      {
+        "fragment_id": "G7a",
+        "cx": 17,
+        "cy": 11
+      },
+      {
+        "fragment_id": "G7b",
+        "cx": 50,
+        "cy": 17
+      },
+      {
+        "fragment_id": "G7c",
+        "cx": 73,
+        "cy": 29
+      },
+      {
+        "fragment_id": "G7d",
+        "cx": 76,
+        "cy": 11
+      },
+      {
+        "fragment_id": "G7e",
+        "cx": 89,
+        "cy": 16
+      },
+      {
+        "fragment_id": "G7f",
+        "cx": 91,
+        "cy": 42
+      },
+      {
+        "fragment_id": "G7g",
+        "cx": 67,
+        "cy": 42
+      },
+      {
+        "fragment_id": "G7h",
+        "cx": 22,
+        "cy": 33
+      },
+      {
+        "fragment_id": "G7i",
+        "cx": 24,
+        "cy": 49
+      },
+      {
+        "fragment_id": "G7j",
+        "cx": 40,
+        "cy": 52
+      },
+      {
+        "fragment_id": "G7k",
+        "cx": 56,
+        "cy": 56
+      },
+      {
+        "fragment_id": "G7l",
+        "cx": 56,
+        "cy": 64
+      },
+      {
+        "fragment_id": "G7m",
+        "cx": 18,
+        "cy": 61
+      },
+      {
+        "fragment_id": "G7n",
+        "cx": 14,
+        "cy": 70
+      },
+      {
+        "fragment_id": "G7o",
+        "cx": 28,
+        "cy": 73
+      },
+      {
+        "fragment_id": "G7p",
+        "cx": 41,
+        "cy": 80
+      },
+      {
+        "fragment_id": "G7q",
+        "cx": 24,
+        "cy": 83
+      },
+      {
+        "fragment_id": "G7r",
+        "cx": 38,
+        "cy": 66
+      },
+      {
+        "fragment_id": "G7s",
+        "cx": 58,
+        "cy": 76
+      },
+      {
+        "fragment_id": "G7t",
+        "cx": 62,
+        "cy": 88
+      },
+      {
+        "fragment_id": "G7u",
+        "cx": 66,
+        "cy": 75
+      },
+      {
+        "fragment_id": "G7v",
+        "cx": 82,
+        "cy": 82
+      },
+      {
+        "fragment_id": "G7w",
+        "cx": 90,
+        "cy": 67
+      },
+      {
+        "fragment_id": "G7x",
+        "cx": 11,
+        "cy": 89
+      }
+    ]
+  },
+  "G8": {
+    "image": "assy_030.jpg",
+    "bbox": [
+      40,
+      3,
+      99,
+      56
+    ],
+    "circles": [
+      {
+        "fragment_id": "G8a",
+        "cx": 86,
+        "cy": 14
+      },
+      {
+        "fragment_id": "G8b",
+        "cx": 65,
+        "cy": 26
+      },
+      {
+        "fragment_id": "G8c",
+        "cx": 58,
+        "cy": 30
+      },
+      {
+        "fragment_id": "G8d",
+        "cx": 63,
+        "cy": 36
+      },
+      {
+        "fragment_id": "G8e",
+        "cx": 67,
+        "cy": 33
+      },
+      {
+        "fragment_id": "G8f",
+        "cx": 58,
+        "cy": 40
+      },
+      {
+        "fragment_id": "G8g",
+        "cx": 67,
+        "cy": 40
+      },
+      {
+        "fragment_id": "G8h",
+        "cx": 69,
+        "cy": 43
+      },
+      {
+        "fragment_id": "G8i",
+        "cx": 86,
+        "cy": 40
+      },
+      {
+        "fragment_id": "G8j",
+        "cx": 61,
+        "cy": 50
+      }
+    ],
+    "sewing_sequence": [
+      "Sew G8(c) to G8(d)",
+      "Sew G8(cd) to G8(e)",
+      "Sew G8(b) to G8(cde)",
+      "Sew G8(b-e) to G8(f)",
+      "Sew G8(h) to G8(i)",
+      "Sew G8(g) to G8(hi)",
+      "Sew G8(ghi) to G8(j)",
+      "Sew G8(b-f) to G8(g-j)",
+      "Sew G8(a) to G8(b-j)"
+    ]
+  },
+  "H1": {
+    "image": "assy_030.jpg",
+    "bbox": [
+      29,
+      56,
+      87,
+      99
+    ],
+    "circles": [
+      {
+        "fragment_id": "H1a",
+        "cx": 49,
+        "cy": 72
+      },
+      {
+        "fragment_id": "H1b",
+        "cx": 71,
+        "cy": 65
+      },
+      {
+        "fragment_id": "H1c",
+        "cx": 76,
+        "cy": 72
+      },
+      {
+        "fragment_id": "H1d",
+        "cx": 71,
+        "cy": 83
+      },
+      {
+        "fragment_id": "H1e",
+        "cx": 72,
+        "cy": 94
+      }
+    ],
+    "sewing_sequence": [
+      "Sew H1(b) to H1(c)",
+      "Sew H1(bc) to H1(d)",
+      "Sew H1(a) to H1(bcd)",
+      "Sew H1(a-d) to H1(e)"
+    ]
+  }
+}
