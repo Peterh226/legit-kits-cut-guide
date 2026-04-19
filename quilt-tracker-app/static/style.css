@@ -131,6 +131,8 @@ main {
     position: relative;
     z-index: 1;
 }
+.quilt-block-row:last-child { margin-bottom: 0; }
+.quilt-row-labels .row-label:last-child { margin-bottom: 0; }
 
 .block {
     width: 45px;
