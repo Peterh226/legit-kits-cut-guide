@@ -179,10 +179,9 @@ function renderFragDiagram(frag_id) {
 
     const rows = fragPieces.map(p => `
         <div class="frag-piece-row">
-            <span class="fp-fabric">${p.fabric_code} — ${p.fabric_name}</span>
             <span class="fp-tmpl">${p.template}</span>
-            <span class="fp-qty">×${p.quantity}</span>
-            <span class="fp-page">p.${p.page}</span>
+            <span class="fp-qty">(${p.quantity})</span>
+            <span class="fp-fabric">${p.fabric_code}</span>
         </div>`).join("");
 
     return `<div class="frag-diagram"><div class="frag-piece-list">${rows}</div></div>`;
