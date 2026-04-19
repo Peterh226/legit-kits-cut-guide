@@ -73,13 +73,23 @@ function renderGrid(grid) {
 
     const byId = Object.fromEntries(grid.map(b => [b.id, b]));
 
+    const body = document.createElement("div");
+    body.className = "quilt-body";
+
+    const rowLabelsCol = document.createElement("div");
+    rowLabelsCol.className = "quilt-row-labels";
+
+    const gridArea = document.createElement("div");
+    gridArea.className = "quilt-grid-area";
+
     for (const rowLetter of rows) {
-        const rowEl = document.createElement("div");
-        rowEl.className = "quilt-row";
         const label = document.createElement("div");
         label.className = "row-label";
         label.textContent = rowLetter;
-        rowEl.appendChild(label);
+        rowLabelsCol.appendChild(label);
+
+        const rowEl = document.createElement("div");
+        rowEl.className = "quilt-block-row";
 
         for (let col = 1; col <= 8; col++) {
             const block_id = `${rowLetter}${col}`;
@@ -89,14 +99,18 @@ function renderGrid(grid) {
             el.id = `block-${block_id}`;
             el.innerHTML = `
                 <span class="block-id">${block_id}</span>
-                <span class="block-info">${block ? block.piece_count + "p" : ""}</span>
+                <span class="block-info">${block ? block.fragments.length + "s " + block.piece_count + "p" : ""}</span>
             `;
             el.addEventListener("click", () => selectBlock(block_id));
             if (selectedBlock === block_id) el.classList.add("selected");
             rowEl.appendChild(el);
         }
-        container.appendChild(rowEl);
+        gridArea.appendChild(rowEl);
     }
+
+    body.appendChild(rowLabelsCol);
+    body.appendChild(gridArea);
+    container.appendChild(body);
 }
 
 // ── Block selection ───────────────────────────────────────────────────────

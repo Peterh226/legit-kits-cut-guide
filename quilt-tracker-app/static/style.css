@@ -26,6 +26,10 @@ header h1 {
 }
 
 #reset-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
     background: transparent;
     border: 1px solid #e94560;
     color: #e94560;
@@ -63,28 +67,8 @@ main {
 /* ── Quilt grid ── */
 .quilt-wrap {
     flex: 0 0 auto;
-    position: relative;
     padding: 12px;
     border-radius: 8px;
-    overflow: hidden;
-    background-image: url("/static/quilt_overview.jpg");
-    background-size: cover;
-    background-position: center;
-}
-
-.quilt-wrap::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(15, 15, 35, 0.45);
-    border-radius: 8px;
-    z-index: 0;
-}
-
-.quilt-labels,
-.quilt-row {
-    position: relative;
-    z-index: 1;
 }
 
 .quilt-labels {
@@ -100,18 +84,50 @@ main {
     font-weight: bold;
 }
 
-.quilt-row {
-    display: grid;
-    grid-template-columns: 28px repeat(8, 52px);
-    margin-bottom: 3px;
-    align-items: center;
+.quilt-body {
+    display: flex;
+}
+
+.quilt-row-labels {
+    display: flex;
+    flex-direction: column;
+    width: 28px;
 }
 
 .row-label {
+    height: 52px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.75rem;
     color: #888;
     font-weight: bold;
-    text-align: center;
+}
+
+.quilt-grid-area {
+    position: relative;
+    background-image: url("/static/quilt_overview.jpg");
+    background-size: cover;
+    background-position: center;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.quilt-grid-area::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 15, 35, 0.45);
+    z-index: 0;
+}
+
+.quilt-block-row {
+    display: grid;
+    grid-template-columns: repeat(8, 52px);
+    margin-bottom: 3px;
+    position: relative;
+    z-index: 1;
 }
 
 .block {
