@@ -169,14 +169,14 @@ function renderFragPieces(frag_id) {
     const blockChecks = pieceChecks[currentBlock.id] || {};
     const fragMap     = blockChecks[frag_id] || {};
 
-    const rows = fragPieces.map(p => {
+    const rows = fragPieces.map((p, i) => {
         const checked = fragMap[p.piece_num] || false;
         return `
             <div class="piece-check-row">
                 <input type="checkbox" ${checked ? "checked" : ""}
                     onchange="checkPiece('${currentBlock.id}','${frag_id}',${p.piece_num},this.checked)">
                 <span class="pc-tmpl">${p.template}</span>
-                <span class="pc-num">${p.piece_num}</span>
+                <span class="pc-num">(${i + 1})</span>
                 <span class="pc-fabric">${p.fabric_code}</span>
             </div>`;
     }).join("");
