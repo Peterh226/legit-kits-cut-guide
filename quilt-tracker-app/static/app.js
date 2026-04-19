@@ -154,7 +154,7 @@ function renderDetail(block, assy) {
     const totalPieces = (block.pieces || []).length;
     const nPiecesCut  = (block.pieces || []).filter(p => {
         const frag = block.fragments.find(f => matchesFrag(p.template, f.id));
-        return frag && (blockChecks[frag.id] || {})[String(p.piece_num)];
+        return frag && (blockChecks[frag.id] || {})[`${p.fabric_code}_${p.piece_num}`];
     }).length;
 
     panel.innerHTML = `
@@ -265,11 +265,12 @@ function renderFragPieces(frag_id) {
     const fragMap     = blockChecks[frag_id] || {};
 
     const rows = fragPieces.map((p, i) => {
-        const checked = fragMap[String(p.piece_num)] || false;
+        const pieceKey = `${p.fabric_code}_${p.piece_num}`;
+        const checked = fragMap[pieceKey] || false;
         return `
             <div class="piece-check-row">
                 <input type="checkbox" ${checked ? "checked" : ""}
-                    onchange="checkPiece('${currentBlock.id}','${frag_id}',${p.piece_num},this.checked)">
+                    onchange="checkPiece('${currentBlock.id}','${frag_id}','${pieceKey}',this.checked)">
                 <span class="pc-tmpl">${p.template}</span>
                 <span class="pc-num">(${i + 1})</span>
                 <span class="pc-fabric">${p.fabric_code}</span>
@@ -294,15 +295,36 @@ async function checkPiece(block_id, frag_id, piece_num, checked) {
     if (!pieceChecks[block_id][frag_id]) pieceChecks[block_id][frag_id] = {};
     pieceChecks[block_id][frag_id][String(piece_num)] = checked;
 
-    // Persist to server
     fetch("/api/piece_progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ block_id, frag_id, piece_num, checked }),
     });
 
-    // Re-render to reflect updated checkbox state
     document.getElementById("tab-cut").innerHTML = renderCutTab(currentBlock);
+    refreshBlockSummary(currentBlock);
+}
+
+function refreshBlockSummary(block) {
+    const blockChecks = pieceChecks[block.id] || {};
+    const totalPieces = (block.pieces || []).length;
+    const nPiecesCut  = (block.pieces || []).filter(p => {
+        const frag = block.fragments.find(f => matchesFrag(p.template, f.id));
+        return frag && (blockChecks[frag.id] || {})[`${p.fabric_code}_${p.piece_num}`];
+    }).length;
+    const totalSegs   = block.fragments.length;
+    const nReady      = block.fragments.filter(f => f.cut).length;
+    const nAssembled  = block.fragments.filter(f => f.assembled).length;
+
+    const s = document.querySelector(".block-summary");
+    if (!s) return;
+    s.innerHTML = `
+        <span class="${nPiecesCut === totalPieces ? "sum-done" : "sum-pend"}">${nPiecesCut}/${totalPieces} cut</span>
+        <span class="sum-sep">·</span>
+        <span class="${nReady === totalSegs ? "sum-done" : "sum-pend"}">${nReady}/${totalSegs} segs ready</span>
+        <span class="sum-sep">·</span>
+        <span class="${nAssembled === totalSegs ? "sum-done" : "sum-pend"}">${nAssembled}/${totalSegs} assembled</span>
+    `;
 }
 
 // ── Assemble tab ──────────────────────────────────────────────────────────
