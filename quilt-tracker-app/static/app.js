@@ -134,7 +134,7 @@ function switchTab(tab) {
 
 function renderCutTab(block) {
     const allCut = block.fragments.every(f => f.cut);
-    const sorted = [...block.fragments].sort((a, b) => b.piece_count - a.piece_count);
+    const sorted = [...block.fragments].sort((a, b) => a.id.localeCompare(b.id));
 
     const fragsHtml = sorted.map(f => {
         const isActive = activeFrag === f.id;
@@ -161,9 +161,9 @@ function renderCutTab(block) {
 }
 
 function renderFragPieces(frag_id) {
-    const fragPieces = (currentBlock.pieces || []).filter(p =>
-        p.template === frag_id || p.template.startsWith(frag_id)
-    );
+    const fragPieces = (currentBlock.pieces || [])
+        .filter(p => p.template === frag_id || p.template.startsWith(frag_id))
+        .sort((a, b) => a.piece_num - b.piece_num);
     if (!fragPieces.length) return "";
 
     const blockChecks = pieceChecks[currentBlock.id] || {};
