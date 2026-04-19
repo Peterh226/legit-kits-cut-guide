@@ -25,6 +25,18 @@ header h1 {
     letter-spacing: 1px;
 }
 
+#reset-btn {
+    background: transparent;
+    border: 1px solid #e94560;
+    color: #e94560;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+#reset-btn:hover { background: #e94560; color: #fff; }
+
 .stats-bar {
     display: flex;
     gap: 20px;

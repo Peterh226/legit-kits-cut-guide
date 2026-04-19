@@ -240,6 +240,21 @@ async function updateProgress(block_id, fragment_id, field, value) {
     }
 }
 
+// ── Reset ─────────────────────────────────────────────────────────────────
+
+async function resetProgress() {
+    if (!confirm("Reset all progress? This cannot be undone.")) return;
+    const res = await fetch("/api/progress/reset", { method: "POST" });
+    const data = await res.json();
+    renderStats(data.stats);
+    selectedBlock = null;
+    currentBlock = null;
+    currentAssy = null;
+    document.getElementById("detail-panel").innerHTML =
+        "<h2>Block Detail</h2><p class='detail-empty'>Click a block on the quilt to see its pieces and track progress.</p>";
+    await refreshPattern();
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", init);
