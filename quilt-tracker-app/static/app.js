@@ -428,6 +428,7 @@ async function updateProgress(block_id, fragment_id, field, value) {
     });
     const data = await res.json();
 
+    if (patternData) patternData.stats = data.stats;
     const el = document.getElementById(`block-${block_id}`);
     if (el) el.className = `block ${data.status}${selectedBlock === block_id ? " selected" : ""}`;
     renderStats(data.stats);
