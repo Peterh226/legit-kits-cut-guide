@@ -19,8 +19,8 @@ env/
 # Generated data (not committed — large or Pi-local)
 data/overview_data.json
 
-# Cut/assy source images are committed to static/ for Pi access
-# (no entries needed here — they are tracked)
+# Cut images not needed on Pi (piece list shown instead)
+quilt-tracker-app/static/cut/
 
 # macOS
 .DS_Store
