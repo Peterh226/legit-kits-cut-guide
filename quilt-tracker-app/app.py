@@ -49,12 +49,18 @@ def load_pattern():
     overview_path = DATA_DIR / "overview_data.json"
     overview = json.loads(overview_path.read_text(encoding="utf-8")) if overview_path.exists() else []
 
-    # Pattern name from overview
-    pattern_name = "Quilt"
-    for page in overview:
-        if page.get("quilt_name"):
-            pattern_name = page["quilt_name"]
-            break
+    # Pattern name: config.json is authoritative; overview_data.json is fallback
+    config_path = DATA_DIR / "config.json"
+    config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    if config.get("quilt_name"):
+        pattern_name = config["quilt_name"]
+    else:
+        pattern_name = "Quilt"
+        for page in overview:
+            if page.get("quilt_name"):
+                pattern_name = page["quilt_name"]
+                break
+    start_date = config.get("start_date", "")
 
     # Fabric info keyed by code
     fabrics = {}
@@ -104,10 +110,11 @@ def load_pattern():
         }
 
     return {
-        "name":    pattern_name,
-        "blocks":  blocks,
-        "fabrics": fabrics,
-        "grid":    [f"{r}{c}" for r in "ABCDEFGH" for c in "12345678"],
+        "name":       pattern_name,
+        "start_date": start_date,
+        "blocks":     blocks,
+        "fabrics":    fabrics,
+        "grid":       [f"{r}{c}" for r in "ABCDEFGH" for c in "12345678"],
     }
 
 

@@ -76,7 +76,7 @@ main {
     content: "";
     position: absolute;
     inset: 0;
-    background: rgba(15, 15, 35, 0.72);
+    background: rgba(15, 15, 35, 0.45);
     border-radius: 8px;
     z-index: 0;
 }
@@ -120,36 +120,39 @@ main {
     margin: 1px;
     border-radius: 4px;
     cursor: pointer;
-    border: 2px solid transparent;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: transparent;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     font-size: 0.65rem;
     font-weight: bold;
-    transition: transform 0.1s, border-color 0.1s;
+    transition: transform 0.1s, border-color 0.1s, background 0.1s;
     position: relative;
 }
 
 .block:hover {
     transform: scale(1.08);
+    background: rgba(255,255,255,0.08);
     border-color: #fff;
     z-index: 2;
 }
 
 .block.selected {
     border-color: #fff;
+    background: rgba(255,255,255,0.08);
     transform: scale(1.08);
     z-index: 2;
 }
 
-.block .block-id   { font-size: 0.7rem; font-weight: bold; }
-.block .block-info { font-size: 0.55rem; opacity: 0.8; margin-top: 2px; }
+.block .block-id   { font-size: 0.7rem; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+.block .block-info { font-size: 0.55rem; opacity: 0.85; margin-top: 2px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
 
-/* Status colors */
-.block.not_started  { background: #2d3561; color: #aaa; }
-.block.in_progress  { background: #7a4f00; color: #ffd180; }
-.block.complete     { background: #1b5e20; color: #a5d6a7; }
+/* Status: outline + tinted bg only */
+.block.not_started  { border-color: rgba(255,255,255,0.15); color: #ccc; }
+.block.in_progress  { border-color: #ff9800; color: #ffd180; background: rgba(122,79,0,0.35); }
+.block.complete     { border-color: #4caf50; color: #a5d6a7; background: rgba(27,94,32,0.45); }
 
 /* ── Detail panel ── */
 .detail-panel {
@@ -322,6 +325,6 @@ main {
     border-radius: 3px;
 }
 
-.swatch-not_started { background: #2d3561; }
-.swatch-in_progress { background: #7a4f00; }
-.swatch-complete    { background: #1b5e20; }
+.swatch-not_started { background: transparent; border: 2px solid rgba(255,255,255,0.3); }
+.swatch-in_progress { background: rgba(122,79,0,0.35); border: 2px solid #ff9800; }
+.swatch-complete    { background: rgba(27,94,32,0.45); border: 2px solid #4caf50; }
