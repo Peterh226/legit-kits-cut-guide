@@ -16,6 +16,13 @@ env/
 # Output files — generated, not tracked
 *.xlsx
 
+# Assembly images — copied locally by extract.py, not committed
+quilt-tracker-app/static/assy/
+
+# Generated data
+data/overview_data.json
+data/assembly_guide.json
+
 # macOS
 .DS_Store
 

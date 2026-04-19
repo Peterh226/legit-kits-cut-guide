@@ -350,6 +350,130 @@ def extract_assembly(client: anthropic.Anthropic, assy_folder: Path) -> dict[str
 
 
 # ---------------------------------------------------------------------------
+# Assembly guide visual data extraction
+# ---------------------------------------------------------------------------
+
+ASSY_VISUAL_PROMPT = """\
+This is a page from a Legit Kits quilt assembly guide.
+
+For each block that appears on this page, extract two things:
+
+1. DIAGRAM — if a visual block diagram appears (circles with fragment labels, dashed sewing lines):
+   - block_id: e.g. "G7"
+   - bbox: bounding box of the entire diagram as [left%, top%, right%, bottom%]
+     where values are percentages of the full image width/height (0-100)
+   - circles: for each circle containing a fragment label (e.g. G7a, G7b):
+     {"fragment_id": "G7a", "cx": %, "cy": %}
+     where cx/cy are the circle center as % of image dimensions
+   - sewing_sequence: list of sewing steps in order, e.g.
+     ["Sew G7(b) to G7(c)", "Sew G7(bc) to G7(d)", ...]
+     Extract these from boxed numbers and dashed lines if visible on the diagram itself.
+
+2. INSTRUCTIONS — if a text instruction panel appears for a block (even if no diagram):
+   - block_id: e.g. "G7"
+   - sewing_sequence: ordered list of steps from the text, e.g.
+     ["Sew G7(b) to G7(c)", "Sew G7(bc) to G7(d)", ...]
+
+Return a JSON object with two keys:
+{
+  "diagrams": [
+    {
+      "block_id": "G7",
+      "bbox": [5, 45, 95, 95],
+      "circles": [
+        {"fragment_id": "G7a", "cx": 8, "cy": 10},
+        {"fragment_id": "G7b", "cx": 35, "cy": 8}
+      ],
+      "sewing_sequence": ["Sew G7(b) to G7(c)", "..."]
+    }
+  ],
+  "instructions": [
+    {
+      "block_id": "G7",
+      "sewing_sequence": ["Sew G7(b) to G7(c)", "Sew G7(bc) to G7(d)", "..."]
+    }
+  ]
+}
+
+Notes:
+- A block may appear in diagrams only, instructions only, or both (if on the same page).
+- For circle positions, use the CENTER of the circle, as % of the full image dimensions.
+- bbox values are % of image width (left/right) and height (top/bottom).
+- If a section is empty, return an empty list for that key.
+- Do not include any text outside the JSON object.
+"""
+
+
+def extract_assembly_visual(
+    client: anthropic.Anthropic,
+    assy_folder: Path,
+    data_dir: Path,
+) -> dict:
+    """
+    Extract diagram bounding boxes, circle positions, and sewing steps from
+    each assembly guide image. Writes data/assembly_guide.json and copies
+    images to quilt-tracker-app/static/assy/.
+    """
+    images = sorted_images(assy_folder, "assy")
+    if not images:
+        print("  [assy-visual] No images found — skipping.")
+        return {}
+
+    # Output: block_id -> {image, bbox, circles, sewing_sequence}
+    guide: dict = {}          # block_id -> merged data
+    image_map: dict = {}      # image filename -> list of block_ids with diagrams
+
+    for img in images:
+        print(f"  [assy-visual] Processing {img.name} ...")
+        raw = call_claude(client, img, ASSY_VISUAL_PROMPT)
+        data = _parse_json(raw, img.name)
+        if not data:
+            continue
+
+        page_diagrams    = data.get("diagrams", [])
+        page_instructions = data.get("instructions", [])
+
+        for d in page_diagrams:
+            bid = d.get("block_id")
+            if not bid:
+                continue
+            guide.setdefault(bid, {})
+            guide[bid]["image"]           = img.name
+            guide[bid]["bbox"]            = d.get("bbox", [])
+            guide[bid]["circles"]         = d.get("circles", [])
+            if d.get("sewing_sequence"):
+                guide[bid]["sewing_sequence"] = d["sewing_sequence"]
+            image_map.setdefault(img.name, []).append(bid)
+
+        for inst in page_instructions:
+            bid = inst.get("block_id")
+            if not bid:
+                continue
+            guide.setdefault(bid, {})
+            # Only set sewing_sequence from instructions if not already set by diagram
+            if "sewing_sequence" not in guide[bid] and inst.get("sewing_sequence"):
+                guide[bid]["sewing_sequence"] = inst["sewing_sequence"]
+                guide[bid].setdefault("instruction_image", img.name)
+
+        print(f"         -> {len(page_diagrams)} diagrams, {len(page_instructions)} instruction blocks")
+
+    # Write JSON
+    out = data_dir / "assembly_guide.json"
+    out.write_text(json.dumps(guide, indent=2), encoding="utf-8")
+    print(f"  [assy-visual] Wrote {len(guide)} blocks to {out}")
+
+    # Copy assy images to quilt-tracker-app/static/assy/
+    static_assy = Path(__file__).parent / "quilt-tracker-app" / "static" / "assy"
+    static_assy.mkdir(parents=True, exist_ok=True)
+    for img in images:
+        dest = static_assy / img.name
+        dest.write_bytes(img.read_bytes())
+    print(f"  [assy-visual] Copied {len(images)} images to {static_assy}")
+
+    return guide
+
+
+# ---------------------------------------------------------------------------
 # Write data files
 # ---------------------------------------------------------------------------
 
@@ -445,10 +569,13 @@ def main() -> None:
 
     # --- Assembly guide ---
     if assy_folder.is_dir():
-        print("\n=== Assembly guide pages ===")
+        print("\n=== Assembly guide pages (structure) ===")
         blocks = extract_assembly(client, assy_folder)
         if blocks:
             write_assembly_data(blocks, data_dir / "assembly_data.py")
+
+        print("\n=== Assembly guide pages (visual) ===")
+        extract_assembly_visual(client, assy_folder, data_dir)
 
     # --- Cut guide (uses master fabric list for code resolution) ---
     if cut_folder.is_dir():
