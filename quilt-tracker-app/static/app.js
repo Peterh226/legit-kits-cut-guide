@@ -109,9 +109,18 @@ function renderDetail(block, assy) {
         activeTab = block.fragments.some(f => f.cut) ? "assemble" : "cut";
     }
 
+    const total    = block.fragments.length;
+    const nCut     = block.fragments.filter(f => f.cut).length;
+    const nAssembled = block.fragments.filter(f => f.assembled).length;
+
     panel.innerHTML = `
         <h2>Block ${block.id}</h2>
         <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
+        <div class="block-summary">
+            <span class="${nCut === total ? "sum-done" : "sum-pend"}">${nCut}/${total} cut</span>
+            <span class="sum-sep">·</span>
+            <span class="${nAssembled === total ? "sum-done" : "sum-pend"}">${nAssembled}/${total} assembled</span>
+        </div>
         <div class="detail-tabs">
             <button class="tab-btn ${activeTab === "cut"     ? "active" : ""}" onclick="switchTab('cut')">Cut</button>
             <button class="tab-btn ${activeTab === "assemble" ? "active" : ""}" onclick="switchTab('assemble')">Assemble</button>

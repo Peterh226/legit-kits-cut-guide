@@ -279,6 +279,20 @@ main {
 .piece-row .p-tmpl { color: #fff; }
 .piece-row .p-qty  { color: #ffd180; text-align: center; }
 
+/* ── Block summary ── */
+.block-summary {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.sum-done { color: #4caf50; font-weight: bold; }
+.sum-pend { color: #888; }
+.sum-sep  { color: #444; }
+
 /* ── Detail tabs ── */
 .detail-tabs {
     display: flex;
