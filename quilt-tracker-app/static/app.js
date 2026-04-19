@@ -2,6 +2,8 @@
 
 let patternData = null;
 let selectedBlock = null;
+let currentBlock = null;
+let currentAssy = null;
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 
@@ -84,14 +86,18 @@ async function selectBlock(block_id) {
 }
 
 async function loadDetail(block_id) {
-    const res = await fetch(`/api/block/${block_id}`);
-    const block = await res.json();
-    renderDetail(block);
+    const [blockRes, assyRes] = await Promise.all([
+        fetch(`/api/block/${block_id}`),
+        fetch(`/api/assembly/${block_id}`),
+    ]);
+    currentBlock = await blockRes.json();
+    currentAssy = assyRes.ok ? await assyRes.json() : null;
+    renderDetail(currentBlock, currentAssy);
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────
 
-function renderDetail(block) {
+function renderDetail(block, assy) {
     const panel = document.getElementById("detail-panel");
 
     const statusLabel = {
@@ -100,7 +106,7 @@ function renderDetail(block) {
         complete: "Complete",
     }[block.status] || block.status;
 
-    let fragsHtml = block.fragments.map(f => `
+    const fragsHtml = block.fragments.map(f => `
         <div class="fragment-row">
             <span class="fragment-id">${f.id}</span>
             <label class="check-group">
@@ -137,12 +143,65 @@ function renderDetail(block) {
         `;
     }
 
+    const assyHtml = assy ? renderAssyDiagram(assy, block.fragments) : "";
+
     panel.innerHTML = `
         <h2>Block ${block.id}</h2>
         <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
+        ${assyHtml}
         <div class="fragment-list">${fragsHtml}</div>
         ${piecesHtml}
     `;
+}
+
+function renderAssyDiagram(assy, fragments) {
+    const fragState = Object.fromEntries(fragments.map(f => [f.id, f]));
+    const [l, t, r, b] = assy.bbox;
+
+    const highlight = `<rect x="${l}%" y="${t}%" width="${r - l}%" height="${b - t}%"
+        fill="rgba(233,69,96,0.08)" stroke="#e94560" stroke-width="2" stroke-dasharray="6 3"/>`;
+
+    const circles = assy.circles.map(c => {
+        const state = fragState[c.fragment_id] || {};
+        const color = state.assembled ? "#4caf50" : state.cut ? "#ff9800" : "#2196f3";
+        const label = c.fragment_id.replace(/^[A-H]\d/, "");  // strip block prefix, show just "a","b"...
+        return `
+            <circle cx="${c.cx}%" cy="${c.cy}%" r="14"
+                fill="${color}" fill-opacity="0.88" stroke="#fff" stroke-width="1.5"
+                style="cursor:pointer" onclick="clickCircle('${c.fragment_id}')"/>
+            <text x="${c.cx}%" y="${c.cy}%" text-anchor="middle" dominant-baseline="middle"
+                font-size="10" font-weight="bold" fill="#fff" pointer-events="none"
+                font-family="Arial">${label || c.fragment_id}</text>`;
+    }).join("");
+
+    let stepsHtml = "";
+    if (assy.sewing_sequence && assy.sewing_sequence.length) {
+        const steps = assy.sewing_sequence.map((s, i) =>
+            `<div class="sewing-step"><span class="step-num">${i + 1}</span>${s}</div>`
+        ).join("");
+        stepsHtml = `<div class="sewing-steps"><h3>Sewing Order</h3>${steps}</div>`;
+    }
+
+    return `
+        <div class="assy-diagram">
+            <div class="assy-img-wrap">
+                <img src="/static/assy/${assy.image}" alt="Assembly diagram for block">
+                <svg xmlns="http://www.w3.org/2000/svg">
+                    ${highlight}
+                    ${circles}
+                </svg>
+            </div>
+            ${stepsHtml}
+        </div>
+    `;
+}
+
+async function clickCircle(frag_id) {
+    if (!currentBlock) return;
+    const state = currentBlock.fragments.find(f => f.id === frag_id);
+    if (!state) return;
+    await updateProgress(currentBlock.id, frag_id, "assembled", !state.assembled);
+    await loadDetail(currentBlock.id);
 }
 
 // ── Progress update ───────────────────────────────────────────────────────

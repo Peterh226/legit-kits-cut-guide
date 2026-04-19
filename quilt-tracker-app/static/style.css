@@ -143,7 +143,7 @@ main {
 .detail-panel {
     flex: 1;
     min-width: 280px;
-    max-width: 480px;
+    max-width: 600px;
     background: #16213e;
     border-radius: 8px;
     border: 1px solid #0f3460;
@@ -229,6 +229,64 @@ main {
 .piece-row .p-code { color: #90caf9; }
 .piece-row .p-tmpl { color: #fff; }
 .piece-row .p-qty  { color: #ffd180; text-align: center; }
+
+/* ── Assembly diagram ── */
+.assy-diagram {
+    margin-bottom: 14px;
+}
+
+.assy-img-wrap {
+    position: relative;
+    display: block;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.assy-img-wrap img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.assy-img-wrap svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.sewing-steps {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #0f3460;
+    border-radius: 4px;
+}
+
+.sewing-steps h3 {
+    font-size: 0.7rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.sewing-step {
+    font-size: 0.8rem;
+    color: #ccc;
+    padding: 2px 0;
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.sewing-step .step-num {
+    color: #e94560;
+    font-weight: bold;
+    font-size: 0.7rem;
+    min-width: 14px;
+}
 
 /* ── Legend ── */
 .legend {
