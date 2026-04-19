@@ -201,6 +201,40 @@ def build_summary_sheet(wb, stats):
 
 
 # ---------------------------------------------------------------------------
+# Sheet: By Page
+# ---------------------------------------------------------------------------
+def build_page_sheet(wb, stats):
+    ws = wb.create_sheet("By Page")
+
+    headers = [
+        ("Page",         8),
+        ("Fabric Code", 14),
+        ("Fabric Name", 18),
+        ("Total Pieces", 14),
+    ]
+    for col, (label, width) in enumerate(headers, 1):
+        _header_cell(ws, 1, col, label, width)
+    ws.row_dimensions[1].height = 28
+
+    # Build page -> [(code, name, piece_count)] sorted by page then code
+    page_rows = defaultdict(list)
+    for code, info in stats["fabric_info"].items():
+        page_rows[info["page"]].append((code, info["name"], info["piece_count"]))
+
+    row_idx = 2
+    for page in sorted(page_rows.keys()):
+        for code, name, piece_count in sorted(page_rows[page]):
+            _data_cell(ws, row_idx, 1, page,        center=True)
+            _data_cell(ws, row_idx, 2, code,        center=True)
+            _data_cell(ws, row_idx, 3, name)
+            _data_cell(ws, row_idx, 4, piece_count, center=True)
+            row_idx += 1
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:D{row_idx - 1}"
+
+
+# ---------------------------------------------------------------------------
 # Sheet: Statistics
 # ---------------------------------------------------------------------------
 def build_stats_sheet(wb, stats):
@@ -307,6 +341,7 @@ def generate(output_path: str = "LandOfTheFree_CutGuide.xlsx"):
     wb = Workbook()
     build_cut_guide_sheet(wb)
     build_summary_sheet(wb, stats)
+    build_page_sheet(wb, stats)
     build_stats_sheet(wb, stats)
     wb.save(output_path)
 

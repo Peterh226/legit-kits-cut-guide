@@ -9,19 +9,27 @@ Usage:
 
 Input folder layout:
     <pattern_folder>/
-    ├── cut/       cut_01.png, cut_02.png, ...   (cut guide pages)
-    ├── assy/      assy_01.png, assy_02.png, ...  (assembly guide pages)
-    └── overview/  overview_01.png, ...           (overview pages)
+    ├── cut/       cut_001.jpg, cut_002.jpg, ...   (cut guide pages)
+    ├── assy/      assy_001.jpg, assy_002.jpg, ...  (assembly guide pages)
+    └── overview/  overview_001.jpg, ...            (overview/color guide pages)
+
+Processing order:
+    1. overview/ — builds the master fabric list (code, name, SKU) used to
+                   correct any missing or misread fabric codes in cut guide data
+    2. assy/     — extracts block assembly fragment lists
+    3. cut/      — extracts piece rows; fabric codes are resolved against the
+                   master fabric list from step 1
 
 Output (written into data/ in the current directory):
-    data/cut_guide_data.py
-    data/assembly_data.py
+    data/overview_data.json   — master fabric list + other overview metadata
+    data/assembly_data.py     — block -> fragment mapping
+    data/cut_guide_data.py    — all piece rows
 
 Then automatically runs generate.py and tracking.py.
 
 Requirements:
     pip install anthropic pillow
-    ANTHROPIC_API_KEY must be set in the environment.
+    ANTHROPIC_API_KEY must be set in the environment (or in a .env file).
 """
 
 import argparse
@@ -37,6 +45,7 @@ import anthropic
 from PIL import Image
 import io
 
+
 def _load_dotenv() -> None:
     """Load KEY=VALUE pairs from .env in the same directory as this script."""
     env_file = Path(__file__).parent / ".env"
@@ -48,11 +57,12 @@ def _load_dotenv() -> None:
             k, _, v = line.partition("=")
             os.environ.setdefault(k.strip(), v.strip())
 
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-MAX_BYTES = 4 * 1024 * 1024  # 4 MB — leave headroom under the 5 MB API limit
+MAX_BYTES = 4 * 1024 * 1024  # stay under the 5 MB API limit
 
 def encode_image(path: Path) -> str:
     """Return base64-encoded JPEG bytes, resizing if the file exceeds MAX_BYTES."""
@@ -64,7 +74,6 @@ def encode_image(path: Path) -> str:
         data = buf.getvalue()
         if len(data) <= MAX_BYTES:
             return base64.standard_b64encode(data).decode("utf-8")
-        # Reduce: lower quality first, then shrink dimensions
         if quality > 50:
             quality -= 10
         else:
@@ -73,7 +82,7 @@ def encode_image(path: Path) -> str:
 
 
 def sorted_images(folder: Path, prefix: str) -> list[Path]:
-    """Return sorted image files whose name starts with <prefix> followed by one or more underscores and digits."""
+    """Return sorted image files whose name starts with <prefix> followed by underscores and digits."""
     pattern = re.compile(rf"^{re.escape(prefix)}_+\d+\.(png|jpg|jpeg)$", re.IGNORECASE)
     files = [p for p in folder.iterdir() if pattern.match(p.name)]
     return sorted(files, key=lambda p: int(re.search(r"(\d+)", p.stem).group(1)))
@@ -105,66 +114,181 @@ def call_claude(client: anthropic.Anthropic, image_path: Path, prompt: str) -> s
     return msg.content[0].text
 
 
+def _parse_json(raw: str, source: str) -> list | dict | None:
+    """Strip markdown fences and parse JSON; return None on error."""
+    raw = re.sub(r"^```[a-z]*\n?", "", raw.strip())
+    raw = re.sub(r"\n?```$", "", raw)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        print(f"  WARNING: JSON parse error for {source}: {e}")
+        print(f"           Raw response (first 500 chars): {raw[:500]}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Master fabric list (from overview / color guide)
+# ---------------------------------------------------------------------------
+
+def build_fabric_lookup(overview_data: list[dict]) -> dict[str, str]:
+    """
+    Build a case-insensitive fabric name -> code mapping from the overview data.
+    Uses only pages identified as the Color Guide fabric list (the authoritative pages).
+    Falls back to any page that has a fabrics list if no color guide pages found.
+    """
+    lookup: dict[str, str] = {}  # lowercase name -> code
+
+    color_guide_pages = [
+        p for p in overview_data
+        if "Color Guide" in p.get("document_type", "") or
+           "Color Guide" in p.get("guide_type", "")
+    ]
+    source_pages = color_guide_pages if color_guide_pages else overview_data
+
+    for page in source_pages:
+        for fabric in page.get("fabrics", []):
+            code = fabric.get("code", "").strip()
+            name = fabric.get("name", "").strip()
+            if code and name:
+                lookup[name.lower()] = code
+
+    return lookup
+
+
+def resolve_fabric_codes(rows: list[dict], lookup: dict[str, str]) -> tuple[list[dict], int]:
+    """
+    For any row with a missing or suspect fabric_code, look up the correct code
+    from the master fabric list using the fabric_name.
+    Returns (corrected_rows, number_of_fixes).
+    """
+    fixed = 0
+    result = []
+    for row in rows:
+        code = (row.get("fabric_code") or "").strip()
+        name = (row.get("fabric_name") or "").strip()
+        # Resolve if code is empty or doesn't look like a valid 1-2 letter code
+        if (not code or not re.match(r"^[A-Z]{1,2}$", code)) and name:
+            resolved = lookup.get(name.lower())
+            if resolved:
+                row = dict(row, fabric_code=resolved)
+                fixed += 1
+        result.append(row)
+    return result, fixed
+
+
+# ---------------------------------------------------------------------------
+# Overview extraction
+# ---------------------------------------------------------------------------
+
+OVERVIEW_PROMPT = """\
+This is a page from a Legit Kits quilt overview / color guide.
+Extract any structured information visible: fabric list, fabric codes, SKUs, yardage,
+quilt dimensions, block counts, or other metadata.
+
+For fabric lists, extract each fabric as:
+  {"code": "AF", "name": "Saffron", "sku": "1320", "yardage": "Fat 1/8YD"}
+
+Return a JSON object with whatever fields are present, for example:
+{
+  "quilt_name": "Land of the Free",
+  "document_type": "Color Guide - Fabric List by Code",
+  "fabrics": [
+    {"code": "AF", "name": "Saffron", "sku": "1320", "yardage": "Fat 1/8YD"}
+  ]
+}
+
+If the page has no useful structured data, return {}.
+Do not include any text outside the JSON object.
+"""
+
+
+def extract_overview(client: anthropic.Anthropic, overview_folder: Path) -> list[dict]:
+    images = sorted_images(overview_folder, "overview")
+    if not images:
+        print("  [overview] No images found — skipping.")
+        return []
+
+    results = []
+    for img in images:
+        print(f"  [overview] Processing {img.name} ...")
+        raw = call_claude(client, img, OVERVIEW_PROMPT)
+        data = _parse_json(raw, img.name)
+        if data:
+            results.append(data)
+
+    return results
+
+
 # ---------------------------------------------------------------------------
 # Cut guide extraction
 # ---------------------------------------------------------------------------
 
-CUT_GUIDE_PROMPT = """\
+def _build_cut_guide_prompt(fabric_lookup: dict[str, str]) -> str:
+    """Build the cut guide prompt, injecting the known fabric list if available."""
+    fabric_hint = ""
+    if fabric_lookup:
+        pairs = ", ".join(f"{code}={name.title()}" for name, code in sorted(fabric_lookup.items()))
+        fabric_hint = f"\nKnown fabric codes for this pattern: {pairs}\nUse these codes exactly when you can identify the fabric by name.\n"
+
+    return f"""\
 This is a page from a Legit Kits quilt cut guide. Each page covers one or more fabrics.
 For each fabric on this page, extract ALL piece entries.
-
+{fabric_hint}
 A fabric section has:
 - Fabric code (short code like AF, BT, etc.)
 - Fabric name (e.g. Saffron, Chocolate)
 - SKU (product code)
 - Fabric size (e.g. 2.5" x 44", Fat Quarter)
 - A list of pieces, each with:
-  - Piece number (integer, from circled numbers like ① ② etc.)
+  - Piece number (integer, from circled numbers)
   - Template code (e.g. F3m, A4a, B7c — row letter + column number + optional segment letter)
-  - Quantity (the number in parentheses after the template code, e.g. F3m(3) means quantity 3; if absent use 1)
+  - Quantity (the number in parentheses after the template code; if absent use 1)
 
 IMPORTANT: The piece list is split across two areas of the page — read ALL of them.
 The page number is printed at the bottom of the cut guide page.
 
 Return ONLY a JSON array. Each element represents one piece row:
 [
-  {
+  {{
     "fabric_code": "AF",
     "fabric_name": "Saffron",
-    "sku": "SKU-12345",
-    "fabric_size": "2.5\\\" x 44\\\"",
+    "sku": "1320",
+    "fabric_size": "Fat 1/8YD",
     "piece_num": 1,
     "template_code": "F3m",
     "quantity": 3,
     "page": 1
-  },
-  ...
+  }}
 ]
 
-If a field is not visible or not applicable, use null. Do not include any text outside the JSON array.
+If a field is not visible, use null. Do not include any text outside the JSON array.
 """
 
 
-def extract_cut_guide(client: anthropic.Anthropic, cut_folder: Path) -> list[dict]:
+def extract_cut_guide(
+    client: anthropic.Anthropic,
+    cut_folder: Path,
+    fabric_lookup: dict[str, str],
+) -> list[dict]:
     images = sorted_images(cut_folder, "cut")
     if not images:
         print("  [cut] No images found — skipping.")
         return []
 
+    prompt = _build_cut_guide_prompt(fabric_lookup)
     all_rows: list[dict] = []
     for img in images:
-        print(f"  [cut] Processing {img.name} …")
-        raw = call_claude(client, img, CUT_GUIDE_PROMPT)
-        # Strip markdown code fences if present
-        raw = re.sub(r"^```[a-z]*\n?", "", raw.strip())
-        raw = re.sub(r"\n?```$", "", raw)
-        try:
-            rows = json.loads(raw)
+        print(f"  [cut] Processing {img.name} ...")
+        raw = call_claude(client, img, prompt)
+        rows = _parse_json(raw, img.name)
+        if rows is not None:
             all_rows.extend(rows)
             print(f"         -> {len(rows)} piece rows")
-        except json.JSONDecodeError as e:
-            print(f"  [cut] WARNING: JSON parse error for {img.name}: {e}")
-            print(f"         Raw response (first 500 chars): {raw[:500]}")
+
+    # Post-process: fill in any remaining missing/bad codes from master list
+    all_rows, fixed = resolve_fabric_codes(all_rows, fabric_lookup)
+    if fixed:
+        print(f"  [cut] Resolved {fixed} fabric codes from color guide master list")
 
     return all_rows
 
@@ -202,64 +326,27 @@ def extract_assembly(client: anthropic.Anthropic, assy_folder: Path) -> dict[str
 
     blocks: dict[str, list[str]] = {}
     for img in images:
-        print(f"  [assy] Processing {img.name} …")
+        print(f"  [assy] Processing {img.name} ...")
         raw = call_claude(client, img, ASSY_PROMPT)
-        raw = re.sub(r"^```[a-z]*\n?", "", raw.strip())
-        raw = re.sub(r"\n?```$", "", raw)
-        try:
-            entries = json.loads(raw)
+        entries = _parse_json(raw, img.name)
+        if entries:
             for entry in entries:
                 blocks[entry["block_id"]] = entry["fragments"]
             print(f"         -> {len(entries)} blocks")
-        except json.JSONDecodeError as e:
-            print(f"  [assy] WARNING: JSON parse error for {img.name}: {e}")
 
-    return blocks
+    # Fill in single-fragment blocks for any grid position not in the assembly guide
+    all_blocks = [f"{r}{c}" for r in "ABCDEFGH" for c in "12345678"]
+    complete: dict[str, list[str]] = {}
+    added = 0
+    for block_id in all_blocks:
+        if block_id in blocks:
+            complete[block_id] = blocks[block_id]
+        else:
+            complete[block_id] = [block_id]
+            added += 1
+    print(f"  [assy] Added {added} single-fragment blocks -> {len(complete)} total")
 
-
-# ---------------------------------------------------------------------------
-# Overview extraction (currently informational — not written to a data file)
-# ---------------------------------------------------------------------------
-
-OVERVIEW_PROMPT = """\
-This is a page from a Legit Kits quilt overview / kit contents guide.
-Extract any structured information visible: fabric list, fabric codes, SKUs, yardage,
-quilt dimensions, block counts, or other metadata.
-
-Return a JSON object with whatever fields are present, for example:
-{
-  "quilt_name": "Land of the Free",
-  "finished_size": "72\\\" x 90\\\"",
-  "fabrics": [
-    {"code": "AF", "name": "Saffron", "sku": "LK-1234", "yardage": "1.5 yards"}
-  ]
-}
-
-If the page has no useful structured data, return {}.
-Do not include any text outside the JSON object.
-"""
-
-
-def extract_overview(client: anthropic.Anthropic, overview_folder: Path) -> list[dict]:
-    images = sorted_images(overview_folder, "overview")
-    if not images:
-        print("  [overview] No images found — skipping.")
-        return []
-
-    results = []
-    for img in images:
-        print(f"  [overview] Processing {img.name} …")
-        raw = call_claude(client, img, OVERVIEW_PROMPT)
-        raw = re.sub(r"^```[a-z]*\n?", "", raw.strip())
-        raw = re.sub(r"\n?```$", "", raw)
-        try:
-            data = json.loads(raw)
-            if data:
-                results.append(data)
-        except json.JSONDecodeError as e:
-            print(f"  [overview] WARNING: JSON parse error for {img.name}: {e}")
-
-    return results
+    return complete
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +354,7 @@ def extract_overview(client: anthropic.Anthropic, overview_folder: Path) -> list
 # ---------------------------------------------------------------------------
 
 def write_cut_guide_data(rows: list[dict], out_path: Path) -> None:
-    """Write rows as a Python DATA tuple list matching the existing format."""
+    """Write rows as a Python DATA tuple list."""
     lines = [
         '"""',
         "Auto-generated cut guide data.",
@@ -276,14 +363,14 @@ def write_cut_guide_data(rows: list[dict], out_path: Path) -> None:
         "DATA = [",
     ]
     for r in rows:
-        fabric_code  = repr(r.get("fabric_code") or "")
-        fabric_name  = repr(r.get("fabric_name") or "")
-        sku          = repr(r.get("sku") or "")
-        fabric_size  = repr(r.get("fabric_size") or "")
-        piece_num    = int(r.get("piece_num") or 0)
-        template     = repr(r.get("template_code") or "")
-        quantity     = int(r.get("quantity") or 1)
-        page         = int(r.get("page") or 0)
+        fabric_code = repr((r.get("fabric_code") or "").strip())
+        fabric_name = repr(r.get("fabric_name") or "")
+        sku         = repr(r.get("sku") or "")
+        fabric_size = repr(r.get("fabric_size") or "")
+        piece_num   = int(r.get("piece_num") or 0)
+        template    = repr(r.get("template_code") or "")
+        quantity    = int(r.get("quantity") or 1)
+        page        = int(r.get("page") or 0)
         lines.append(
             f"    ({fabric_code}, {fabric_name}, {sku}, {fabric_size}, "
             f"{piece_num}, {template}, {quantity}, {page}),"
@@ -295,7 +382,7 @@ def write_cut_guide_data(rows: list[dict], out_path: Path) -> None:
 
 
 def write_assembly_data(blocks: dict[str, list[str]], out_path: Path) -> None:
-    """Write blocks as a Python BLOCKS dict matching the existing format."""
+    """Write blocks as a Python BLOCKS dict."""
     lines = [
         '"""',
         "Auto-generated block assembly data.",
@@ -344,7 +431,8 @@ def main() -> None:
     data_dir = Path(__file__).parent / "data"
     data_dir.mkdir(exist_ok=True)
 
-    # --- Overview (informational) ---
+    # --- Overview first — builds master fabric lookup ---
+    fabric_lookup: dict[str, str] = {}
     if overview_folder.is_dir():
         print("\n=== Overview pages ===")
         overview_data = extract_overview(client, overview_folder)
@@ -352,6 +440,8 @@ def main() -> None:
             out = data_dir / "overview_data.json"
             out.write_text(json.dumps(overview_data, indent=2), encoding="utf-8")
             print(f"Wrote overview data to {out}")
+            fabric_lookup = build_fabric_lookup(overview_data)
+            print(f"Built master fabric list: {len(fabric_lookup)} fabrics")
 
     # --- Assembly guide ---
     if assy_folder.is_dir():
@@ -360,10 +450,10 @@ def main() -> None:
         if blocks:
             write_assembly_data(blocks, data_dir / "assembly_data.py")
 
-    # --- Cut guide ---
+    # --- Cut guide (uses master fabric list for code resolution) ---
     if cut_folder.is_dir():
         print("\n=== Cut guide pages ===")
-        rows = extract_cut_guide(client, cut_folder)
+        rows = extract_cut_guide(client, cut_folder, fabric_lookup)
         if rows:
             write_cut_guide_data(rows, data_dir / "cut_guide_data.py")
 

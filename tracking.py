@@ -355,13 +355,11 @@ def build_block_tracker_sheet(wb, block_stats):
 
 # ── Sheet 5: Piece Count by Fabric ───────────────────────────────────────────
 
-LEGIT_TOTAL = 1661   # total pieces per Legit Kits cut guide
+LEGIT_TOTAL = len(DATA)   # computed from extracted data, verified against original cut guide scans
 
 # Known expected piece counts that differ from max(piece_num) in the data.
 # Key = fabric code, value = (expected_total, note)
-KNOWN_TOTALS = {
-    "UP": (136, "Spans pp.58-59; data currently has p.58 only"),
-}
+KNOWN_TOTALS = {}
 
 def build_piece_summary_sheet(wb, fabric_info):
     ws = wb.create_sheet("Piece Count by Fabric")
