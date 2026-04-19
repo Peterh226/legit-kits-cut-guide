@@ -417,36 +417,49 @@ main {
     overflow: visible;
 }
 
-.sewing-steps {
-    margin-top: 8px;
-    padding: 8px 10px;
-    background: #0f3460;
-    border-radius: 4px;
+.sewing-checklist {
+    margin-top: 10px;
 }
 
-.sewing-steps h3 {
+.sewing-checklist h3 {
     font-size: 0.7rem;
     color: #888;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
-.sewing-step {
-    font-size: 0.8rem;
-    color: #ccc;
-    padding: 2px 0;
+.sewing-check-row {
     display: flex;
+    align-items: center;
     gap: 8px;
-    align-items: baseline;
+    padding: 6px 4px;
+    border-bottom: 1px solid #0f3460;
+    font-size: 0.85rem;
+    color: #ccc;
 }
 
-.sewing-step .step-num {
-    color: #e94560;
-    font-weight: bold;
+.sewing-check-row input { cursor: pointer; accent-color: #4caf50; flex-shrink: 0; }
+
+.sc-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid #555;
+    border-radius: 3px;
     font-size: 0.7rem;
-    min-width: 14px;
+    font-weight: bold;
+    color: #aaa;
+    flex-shrink: 0;
 }
+
+.sc-text { flex: 1; }
+
+.step-done { color: #555; }
+.step-done .sc-num { border-color: #4caf50; color: #4caf50; }
+.step-done .sc-text { text-decoration: line-through; }
 
 /* ── Legend ── */
 .legend {

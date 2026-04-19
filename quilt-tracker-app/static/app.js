@@ -6,21 +6,26 @@ let currentBlock = null;
 let currentAssy = null;
 let activeTab = null;      // 'cut' or 'assemble'
 let activeFrag = null;     // fragment id expanded in cut tab
-let pieceChecks = {};      // {block_id: {frag_id: {piece_num: bool}}} — session only
+let pieceChecks  = {};     // {block_id: {frag_id: {piece_num_str: bool}}}
+let sewingChecks = {};     // {block_id: {step_index_str: bool}}
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 
 async function init() {
-    // Load persisted piece checks before rendering
-    const pp = await fetch("/api/piece_progress").then(r => r.json());
+    const [pp, sp] = await Promise.all([
+        fetch("/api/piece_progress").then(r => r.json()),
+        fetch("/api/sewing_progress").then(r => r.json()),
+    ]);
     for (const [bid, frags] of Object.entries(pp)) {
         pieceChecks[bid] = {};
         for (const [fid, pieces] of Object.entries(frags)) {
             pieceChecks[bid][fid] = {};
-            for (const [num, val] of Object.entries(pieces)) {
-                pieceChecks[bid][fid][num] = val;
-            }
+            for (const [num, val] of Object.entries(pieces)) pieceChecks[bid][fid][num] = val;
         }
+    }
+    for (const [bid, steps] of Object.entries(sp)) {
+        sewingChecks[bid] = {};
+        for (const [idx, val] of Object.entries(steps)) sewingChecks[bid][idx] = val;
     }
     await refreshPattern();
 }
@@ -316,65 +321,88 @@ function renderAssembleTab(block, assy) {
     if (!allCut) {
         return `<p class="tab-hint">Mark all segments as ready in the Segments tab first.</p>`;
     }
-    if (!assy) {
+
+    // Single-fragment block with no assembly data
+    if (!assy || !assy.sewing_sequence || !assy.sewing_sequence.length) {
         const f = block.fragments[0];
         return `
-            <div class="fragment-row">
-                <span class="fragment-id">${f.id}</span>
-                <label class="check-group">
+            <div class="sewing-checklist">
+                <div class="sewing-check-row ${f.assembled ? "step-done" : ""}">
                     <input type="checkbox" ${f.assembled ? "checked" : ""}
                         onchange="updateProgress('${block.id}','${f.id}','assembled',this.checked)">
-                    <span>Assembled</span>
-                </label>
+                    <span class="sc-num">1</span>
+                    <span class="sc-text">Block assembled</span>
+                </div>
             </div>`;
     }
-    return renderAssyDiagram(assy, block.fragments);
+
+    return renderAssyDiagram(assy, block);
 }
 
-function renderAssyDiagram(assy, fragments) {
-    const fragState = Object.fromEntries(fragments.map(f => [f.id, f]));
+function renderAssyDiagram(assy, block) {
+    const blockChecks = sewingChecks[block.id] || {};
+    const steps = assy.sewing_sequence;
+    const total = steps.length;
+    const nDone = steps.filter((_, i) => blockChecks[String(i)]).length;
+
+    // Diagram image with bbox highlight only (no circles)
     const [l, t, r, b] = assy.bbox;
-
     const highlight = `<rect x="${l}%" y="${t}%" width="${r - l}%" height="${b - t}%"
-        fill="rgba(233,69,96,0.08)" stroke="#e94560" stroke-width="2" stroke-dasharray="6 3"/>`;
+        fill="rgba(233,69,96,0.06)" stroke="#e94560" stroke-width="2" stroke-dasharray="6 3"/>`;
 
-    const circles = assy.circles.map(c => {
-        const state = fragState[c.fragment_id] || {};
-        const color = state.assembled ? "#4caf50" : "#2196f3";
-        const label = c.fragment_id.replace(/^[A-H]\d+/, "");
+    const diagramHtml = `
+        <div class="assy-img-wrap">
+            <img src="/static/assy/${assy.image}" alt="Assembly diagram">
+            <svg xmlns="http://www.w3.org/2000/svg">${highlight}</svg>
+        </div>`;
+
+    const stepRows = steps.map((s, i) => {
+        const done = !!blockChecks[String(i)];
         return `
-            <circle cx="${c.cx}%" cy="${c.cy}%" r="14"
-                fill="${color}" fill-opacity="0.88" stroke="#fff" stroke-width="1.5"
-                style="cursor:pointer" onclick="clickCircle('${c.fragment_id}')"/>
-            <text x="${c.cx}%" y="${c.cy}%" text-anchor="middle" dominant-baseline="middle"
-                font-size="10" font-weight="bold" fill="#fff" pointer-events="none"
-                font-family="Arial">${label || c.fragment_id}</text>`;
+            <div class="sewing-check-row ${done ? "step-done" : ""}">
+                <input type="checkbox" ${done ? "checked" : ""}
+                    onchange="checkSewingStep('${block.id}',${i},this.checked)">
+                <span class="sc-num">${i + 1}</span>
+                <span class="sc-text">${s}</span>
+            </div>`;
     }).join("");
 
-    let stepsHtml = "";
-    if (assy.sewing_sequence && assy.sewing_sequence.length) {
-        const steps = assy.sewing_sequence.map((s, i) =>
-            `<div class="sewing-step"><span class="step-num">${i + 1}</span>${s}</div>`
-        ).join("");
-        stepsHtml = `<div class="sewing-steps"><h3>Sewing Order</h3>${steps}</div>`;
-    }
+    const progress = nDone === total
+        ? `<p class="tab-hint" style="color:#4caf50">All ${total} steps complete!</p>`
+        : `<p class="tab-hint">${nDone}/${total} sewing steps done</p>`;
 
     return `
         <div class="assy-diagram">
-            <div class="assy-img-wrap">
-                <img src="/static/assy/${assy.image}" alt="Assembly diagram">
-                <svg xmlns="http://www.w3.org/2000/svg">${highlight}${circles}</svg>
+            ${diagramHtml}
+            <div class="sewing-checklist">
+                <h3>Sewing Steps</h3>
+                ${stepRows}
             </div>
-            ${stepsHtml}
+            ${progress}
         </div>`;
 }
 
-async function clickCircle(frag_id) {
-    if (!currentBlock) return;
-    const state = currentBlock.fragments.find(f => f.id === frag_id);
-    if (!state) return;
-    await updateProgress(currentBlock.id, frag_id, "assembled", !state.assembled);
-    await loadDetail(currentBlock.id);
+async function checkSewingStep(block_id, step_index, checked) {
+    if (!sewingChecks[block_id]) sewingChecks[block_id] = {};
+    sewingChecks[block_id][String(step_index)] = checked;
+
+    fetch("/api/sewing_progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ block_id, step_index, checked }),
+    });
+
+    // If all steps done, mark all fragments as assembled
+    const steps = currentAssy && currentAssy.sewing_sequence ? currentAssy.sewing_sequence : [];
+    const allDone = steps.length > 0 && steps.every((_, i) => sewingChecks[block_id][String(i)]);
+    if (allDone) {
+        for (const f of currentBlock.fragments) {
+            await updateProgress(block_id, f.id, "assembled", true);
+        }
+        await loadDetail(block_id);
+    } else {
+        document.getElementById("tab-assemble").innerHTML = renderAssembleTab(currentBlock, currentAssy);
+    }
 }
 
 // ── Progress update ───────────────────────────────────────────────────────
@@ -411,7 +439,8 @@ async function resetProgress() {
     currentAssy = null;
     activeTab = null;
     activeFrag = null;
-    pieceChecks = {};
+    pieceChecks  = {};
+    sewingChecks = {};
     renderOverview(data.stats);
     await refreshPattern();
 }
