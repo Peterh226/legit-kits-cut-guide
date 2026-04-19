@@ -4,6 +4,7 @@ let patternData = null;
 let selectedBlock = null;
 let currentBlock = null;
 let currentAssy = null;
+let activeTab = null;  // 'cut' or 'assemble'
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 
@@ -24,10 +25,10 @@ async function refreshPattern() {
 // ── Stats bar ─────────────────────────────────────────────────────────────
 
 function renderStats(stats) {
-    document.getElementById("stat-complete").textContent    = stats.complete;
-    document.getElementById("stat-progress").textContent    = stats.in_progress;
-    document.getElementById("stat-remaining").textContent   = stats.not_started;
-    document.getElementById("stat-pct").textContent         = stats.pct_complete + "%";
+    document.getElementById("stat-complete").textContent  = stats.complete;
+    document.getElementById("stat-progress").textContent  = stats.in_progress;
+    document.getElementById("stat-remaining").textContent = stats.not_started;
+    document.getElementById("stat-pct").textContent       = stats.pct_complete + "%";
 }
 
 // ── Quilt grid ────────────────────────────────────────────────────────────
@@ -37,14 +38,12 @@ function renderGrid(grid) {
     const container = document.getElementById("quilt-grid");
     container.innerHTML = "";
 
-    // Column labels
     const labelRow = document.createElement("div");
     labelRow.className = "quilt-labels";
     labelRow.innerHTML = "<span></span>" +
         [1,2,3,4,5,6,7,8].map(c => `<span>${c}</span>`).join("");
     container.appendChild(labelRow);
 
-    // Block rows
     const byId = Object.fromEntries(grid.map(b => [b.id, b]));
 
     for (const rowLetter of rows) {
@@ -78,7 +77,7 @@ function renderGrid(grid) {
 
 async function selectBlock(block_id) {
     selectedBlock = block_id;
-    // Highlight
+    activeTab = null;  // reset so default tab logic runs
     document.querySelectorAll(".block").forEach(el => el.classList.remove("selected"));
     const el = document.getElementById(`block-${block_id}`);
     if (el) el.classList.add("selected");
@@ -103,8 +102,41 @@ function renderDetail(block, assy) {
     const statusLabel = {
         not_started: "Not Started",
         in_progress: "In Progress",
-        complete: "Complete",
+        complete:    "Complete",
     }[block.status] || block.status;
+
+    // Default tab: cut if nothing cut yet, assemble once any fragment is cut
+    if (!activeTab) {
+        activeTab = block.fragments.some(f => f.cut) ? "assemble" : "cut";
+    }
+
+    panel.innerHTML = `
+        <h2>Block ${block.id}</h2>
+        <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
+        <div class="detail-tabs">
+            <button class="tab-btn ${activeTab === "cut" ? "active" : ""}"
+                onclick="switchTab('cut')">Cut</button>
+            <button class="tab-btn ${activeTab === "assemble" ? "active" : ""}"
+                onclick="switchTab('assemble')">Assemble</button>
+        </div>
+        <div id="tab-cut"     class="tab-content" style="display:${activeTab === "cut"     ? "block" : "none"}">${renderCutTab(block)}</div>
+        <div id="tab-assemble" class="tab-content" style="display:${activeTab === "assemble" ? "block" : "none"}">${renderAssembleTab(block, assy)}</div>
+    `;
+}
+
+function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll(".tab-btn").forEach(b =>
+        b.classList.toggle("active", b.textContent.toLowerCase() === tab)
+    );
+    document.getElementById("tab-cut").style.display     = tab === "cut"     ? "block" : "none";
+    document.getElementById("tab-assemble").style.display = tab === "assemble" ? "block" : "none";
+}
+
+// ── Cut tab ───────────────────────────────────────────────────────────────
+
+function renderCutTab(block) {
+    const allCut = block.fragments.every(f => f.cut);
 
     const fragsHtml = block.fragments.map(f => `
         <div class="fragment-row">
@@ -113,11 +145,6 @@ function renderDetail(block, assy) {
                 <input type="checkbox" ${f.cut ? "checked" : ""}
                     onchange="updateProgress('${block.id}','${f.id}','cut',this.checked)">
                 <span>Cut</span>
-            </label>
-            <label class="check-group">
-                <input type="checkbox" ${f.assembled ? "checked" : ""}
-                    onchange="updateProgress('${block.id}','${f.id}','assembled',this.checked)">
-                <span>Assembled</span>
             </label>
         </div>
     `).join("");
@@ -135,7 +162,7 @@ function renderDetail(block, assy) {
         piecesHtml = `
             <div class="pieces-section">
                 <h3>Pieces (${block.pieces.length})</h3>
-                <div class="piece-row" style="font-size:0.7rem;color:#666;border-bottom:1px solid #333">
+                <div class="piece-row piece-row-header">
                     <span>#</span><span>Fabric</span><span>Template</span><span>Qty</span>
                 </div>
                 ${rows}
@@ -143,15 +170,38 @@ function renderDetail(block, assy) {
         `;
     }
 
-    const assyHtml = assy ? renderAssyDiagram(assy, block.fragments) : "";
+    const hint = allCut
+        ? `<p class="tab-hint">All pieces cut — switch to <a href="#" onclick="switchTab('assemble');return false">Assemble</a>.</p>`
+        : "";
 
-    panel.innerHTML = `
-        <h2>Block ${block.id}</h2>
-        <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
-        ${assyHtml}
-        <div class="fragment-list">${fragsHtml}</div>
-        ${piecesHtml}
-    `;
+    return `<div class="fragment-list">${fragsHtml}</div>${hint}${piecesHtml}`;
+}
+
+// ── Assemble tab ──────────────────────────────────────────────────────────
+
+function renderAssembleTab(block, assy) {
+    const allCut = block.fragments.every(f => f.cut);
+
+    if (!allCut) {
+        return `<p class="tab-hint">Mark all pieces as cut first, then come back here to assemble.</p>`;
+    }
+
+    if (!assy) {
+        // Single-fragment block — just a done checkbox
+        const f = block.fragments[0];
+        return `
+            <div class="fragment-row">
+                <span class="fragment-id">${f.id}</span>
+                <label class="check-group">
+                    <input type="checkbox" ${f.assembled ? "checked" : ""}
+                        onchange="updateProgress('${block.id}','${f.id}','assembled',this.checked)">
+                    <span>Assembled</span>
+                </label>
+            </div>
+        `;
+    }
+
+    return renderAssyDiagram(assy, block.fragments);
 }
 
 function renderAssyDiagram(assy, fragments) {
@@ -163,8 +213,8 @@ function renderAssyDiagram(assy, fragments) {
 
     const circles = assy.circles.map(c => {
         const state = fragState[c.fragment_id] || {};
-        const color = state.assembled ? "#4caf50" : state.cut ? "#ff9800" : "#2196f3";
-        const label = c.fragment_id.replace(/^[A-H]\d/, "");  // strip block prefix, show just "a","b"...
+        const color = state.assembled ? "#4caf50" : "#2196f3";
+        const label = c.fragment_id.replace(/^[A-H]\d+/, "");
         return `
             <circle cx="${c.cx}%" cy="${c.cy}%" r="14"
                 fill="${color}" fill-opacity="0.88" stroke="#fff" stroke-width="1.5"
@@ -185,7 +235,7 @@ function renderAssyDiagram(assy, fragments) {
     return `
         <div class="assy-diagram">
             <div class="assy-img-wrap">
-                <img src="/static/assy/${assy.image}" alt="Assembly diagram for block">
+                <img src="/static/assy/${assy.image}" alt="Assembly diagram">
                 <svg xmlns="http://www.w3.org/2000/svg">
                     ${highlight}
                     ${circles}
@@ -214,29 +264,17 @@ async function updateProgress(block_id, fragment_id, field, value) {
     });
     const data = await res.json();
 
-    // Update block color in grid
     const el = document.getElementById(`block-${block_id}`);
     if (el) {
         el.className = `block ${data.status}${selectedBlock === block_id ? " selected" : ""}`;
     }
-
-    // Update stats
     renderStats(data.stats);
 
-    // Update status badge in detail panel
     const badge = document.querySelector(".block-status-badge");
     if (badge) {
         const label = { not_started: "Not Started", in_progress: "In Progress", complete: "Complete" }[data.status];
         badge.className = `block-status-badge badge-${data.status}`;
         badge.textContent = label;
-    }
-
-    // If assembled was checked, also check cut checkbox visually
-    if (field === "assembled" && value) {
-        const cutCheckbox = document.querySelector(
-            `.fragment-row input[onchange*="'${fragment_id}','cut'"]`
-        );
-        if (cutCheckbox) cutCheckbox.checked = true;
     }
 }
 
@@ -250,6 +288,7 @@ async function resetProgress() {
     selectedBlock = null;
     currentBlock = null;
     currentAssy = null;
+    activeTab = null;
     document.getElementById("detail-panel").innerHTML =
         "<h2>Block Detail</h2><p class='detail-empty'>Click a block on the quilt to see its pieces and track progress.</p>";
     await refreshPattern();

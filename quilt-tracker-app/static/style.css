@@ -240,10 +240,47 @@ main {
     gap: 6px;
 }
 
+.piece-row-header  { font-size: 0.7rem; color: #555; border-bottom: 1px solid #333; }
 .piece-row .p-num  { color: #e94560; font-weight: bold; text-align: center; }
 .piece-row .p-code { color: #90caf9; }
 .piece-row .p-tmpl { color: #fff; }
 .piece-row .p-qty  { color: #ffd180; text-align: center; }
+
+/* ── Detail tabs ── */
+.detail-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #0f3460;
+    padding-bottom: 0;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #666;
+    padding: 6px 16px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-btn:hover  { color: #ccc; }
+.tab-btn.active { color: #e94560; border-bottom-color: #e94560; }
+
+.tab-hint {
+    font-size: 0.8rem;
+    color: #666;
+    font-style: italic;
+    padding: 8px 0 12px;
+}
+
+.tab-hint a { color: #90caf9; text-decoration: none; }
+.tab-hint a:hover { text-decoration: underline; }
 
 /* ── Assembly diagram ── */
 .assy-diagram {
