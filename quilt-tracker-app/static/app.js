@@ -248,10 +248,15 @@ function renderCutTab(block) {
     const fragsHtml = sorted.map(f => {
         const isActive = activeFrag === f.id;
         const pieceRows = isActive ? renderFragPieces(f.id) : "";
+        const fragPieces = (block.pieces || []).filter(p => matchesFrag(p.template, f.id));
+        const fragMap = ((pieceChecks[block.id] || {})[f.id]) || {};
+        const allPiecesCut = fragPieces.length > 0 &&
+            fragPieces.every(p => fragMap[`${p.fabric_code}_${p.piece_num}`]);
+        const segDisabled = !f.cut && !allPiecesCut;
         return `
             <div class="fragment-row ${f.cut ? "frag-cut" : ""}">
                 <label class="check-group">
-                    <input type="checkbox" ${f.cut ? "checked" : ""}
+                    <input type="checkbox" ${f.cut ? "checked" : ""} ${segDisabled ? "disabled" : ""}
                         onchange="toggleFragCut('${block.id}','${f.id}',this.checked)">
                 </label>
                 <span class="fragment-id ${isActive ? "frag-active" : ""}"

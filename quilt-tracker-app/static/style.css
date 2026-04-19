@@ -266,6 +266,7 @@ main {
 }
 
 .check-group input { cursor: pointer; accent-color: #4caf50; }
+.check-group input:disabled { cursor: not-allowed; opacity: 0.35; }
 
 .pieces-section { margin-top: 12px; }
 
