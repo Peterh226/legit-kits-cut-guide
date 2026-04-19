@@ -138,7 +138,7 @@ function renderDetail(block, assy) {
     const blockChecks = pieceChecks[block.id] || {};
     const totalPieces = (block.pieces || []).length;
     const nPiecesCut  = (block.pieces || []).filter(p => {
-        const frag = block.fragments.find(f => p.template === f.id || p.template.startsWith(f.id));
+        const frag = block.fragments.find(f => matchesFrag(p.template, f.id));
         return frag && (blockChecks[frag.id] || {})[String(p.piece_num)];
     }).length;
 
@@ -170,6 +170,15 @@ function switchTab(tab) {
     );
     document.getElementById("tab-cut").style.display      = tab === "cut"      ? "block" : "none";
     document.getElementById("tab-assemble").style.display = tab === "assemble" ? "block" : "none";
+}
+
+// ── Template matching ─────────────────────────────────────────────────────
+
+function matchesFrag(template, frag_id) {
+    if (template === frag_id) return true;
+    if (!template.startsWith(frag_id)) return false;
+    const next = template[frag_id.length];
+    return next !== undefined && /[a-z]/.test(next);
 }
 
 // ── Cut tab ───────────────────────────────────────────────────────────────
@@ -204,7 +213,7 @@ function renderCutTab(block) {
 
 function renderFragPieces(frag_id) {
     const fragPieces = (currentBlock.pieces || [])
-        .filter(p => p.template === frag_id || p.template.startsWith(frag_id))
+        .filter(p => matchesFrag(p.template, frag_id))
         .sort((a, b) => a.piece_num - b.piece_num);
     if (!fragPieces.length) return "";
 
@@ -235,7 +244,7 @@ async function toggleFragCut(block_id, frag_id, checked) {
     // When header is checked, mark all pieces as cut in local state
     if (checked) {
         const fragPieces = (currentBlock.pieces || []).filter(p =>
-            p.template === frag_id || p.template.startsWith(frag_id)
+            matchesFrag(p.template, frag_id)
         );
         if (!pieceChecks[block_id]) pieceChecks[block_id] = {};
         pieceChecks[block_id][frag_id] = {};

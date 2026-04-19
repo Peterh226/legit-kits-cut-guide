@@ -91,9 +91,14 @@ def load_pattern():
         # Match template code to a fragment (strip trailing lowercase letter for multi-frag)
         matched_block = None
         for frag_id, block_id in tmpl_to_block.items():
-            if tmpl == frag_id or tmpl.startswith(frag_id):
+            if tmpl == frag_id:
                 matched_block = block_id
                 break
+            if tmpl.startswith(frag_id):
+                next_ch = tmpl[len(frag_id):]
+                if next_ch and next_ch[0].islower():
+                    matched_block = block_id
+                    break
         if matched_block:
             block_pieces[matched_block].append({
                 "fabric_code": code,
@@ -227,9 +232,14 @@ def api_block(block_id):
     for piece in b["pieces"]:
         tmpl = piece["template"]
         for frag in b["fragments"]:
-            if tmpl == frag or tmpl.startswith(frag):
+            if tmpl == frag:
                 frag_qty[frag] += piece["quantity"]
                 break
+            if tmpl.startswith(frag):
+                next_ch = tmpl[len(frag):]
+                if next_ch and next_ch[0].islower():
+                    frag_qty[frag] += piece["quantity"]
+                    break
 
     return jsonify({
         "id":     block_id,
