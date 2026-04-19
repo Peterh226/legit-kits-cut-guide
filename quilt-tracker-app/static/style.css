@@ -222,27 +222,27 @@ main {
     white-space: nowrap;
 }
 
-.frag-diagram {
-    margin: 6px 0 10px 0;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid #0f3460;
+.frag-piece-list {
+    margin: 2px 0 8px 28px;
+    border-left: 2px solid #0f3460;
+    padding-left: 8px;
 }
 
-.frag-piece-list { padding: 6px 8px; }
-
-.frag-piece-row {
+.piece-check-row {
     display: flex;
-    gap: 6px;
-    padding: 3px 0;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
     font-size: 0.82rem;
-    border-bottom: 1px solid #0f3460;
-    align-items: baseline;
+    border-bottom: 1px solid #0d1f3c;
+    font-family: monospace;
 }
 
-.fp-tmpl   { color: #fff; font-weight: bold; min-width: 52px; }
-.fp-qty    { color: #888; }
-.fp-fabric { color: #90caf9; }
+.piece-check-row input { cursor: pointer; accent-color: #4caf50; flex-shrink: 0; }
+
+.pc-tmpl   { color: #ccc; min-width: 52px; }
+.pc-num    { color: #888; min-width: 28px; }
+.pc-fabric { color: #90caf9; font-weight: bold; }
 
 .check-group {
     display: flex;
