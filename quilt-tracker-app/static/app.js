@@ -130,17 +130,27 @@ function renderDetail(block, assy) {
         activeTab = block.fragments.some(f => f.cut) ? "assemble" : "cut";
     }
 
-    const total      = block.fragments.length;
-    const nCut       = block.fragments.filter(f => f.cut).length;
+    const totalSegs  = block.fragments.length;
+    const nReady     = block.fragments.filter(f => f.cut).length;
     const nAssembled = block.fragments.filter(f => f.assembled).length;
+
+    // Count piece-level cuts from local+persisted state
+    const blockChecks = pieceChecks[block.id] || {};
+    const totalPieces = (block.pieces || []).length;
+    const nPiecesCut  = (block.pieces || []).filter(p => {
+        const frag = block.fragments.find(f => p.template === f.id || p.template.startsWith(f.id));
+        return frag && (blockChecks[frag.id] || {})[String(p.piece_num)];
+    }).length;
 
     panel.innerHTML = `
         <div class="block-header-row">
             <h2>Block ${block.id}</h2>
             <div class="block-summary">
-                <span class="${nCut === total ? "sum-done" : "sum-pend"}">${nCut}/${total} cut</span>
+                <span class="${nPiecesCut === totalPieces ? "sum-done" : "sum-pend"}">${nPiecesCut}/${totalPieces} cut</span>
                 <span class="sum-sep">·</span>
-                <span class="${nAssembled === total ? "sum-done" : "sum-pend"}">${nAssembled}/${total} assembled</span>
+                <span class="${nReady === totalSegs ? "sum-done" : "sum-pend"}">${nReady}/${totalSegs} segs ready</span>
+                <span class="sum-sep">·</span>
+                <span class="${nAssembled === totalSegs ? "sum-done" : "sum-pend"}">${nAssembled}/${totalSegs} assembled</span>
             </div>
         </div>
         <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
@@ -186,7 +196,7 @@ function renderCutTab(block) {
     }).join("");
 
     const hint = allCut
-        ? `<p class="tab-hint">All segments cut — switch to <a href="#" onclick="switchTab('assemble');return false">Assemble</a>.</p>`
+        ? `<p class="tab-hint">All segments ready — switch to <a href="#" onclick="switchTab('assemble');return false">Assemble</a>.</p>`
         : "";
 
     return `<div class="fragment-list">${fragsHtml}</div>${hint}`;
@@ -247,18 +257,8 @@ async function checkPiece(block_id, frag_id, piece_num, checked) {
         body: JSON.stringify({ block_id, frag_id, piece_num, checked }),
     });
 
-    // If all pieces now checked, auto-mark segment as cut
-    const fragPieces = (currentBlock.pieces || []).filter(p =>
-        p.template === frag_id || p.template.startsWith(frag_id)
-    );
-    const allChecked = fragPieces.every(p => pieceChecks[block_id][frag_id][p.piece_num]);
-    if (allChecked) {
-        await updateProgress(block_id, frag_id, "cut", true);
-        await loadDetail(block_id);
-    } else {
-        // Just re-render the cut tab to reflect checkbox state
-        document.getElementById("tab-cut").innerHTML = renderCutTab(currentBlock);
-    }
+    // Re-render to reflect updated checkbox state
+    document.getElementById("tab-cut").innerHTML = renderCutTab(currentBlock);
 }
 
 // ── Assemble tab ──────────────────────────────────────────────────────────
@@ -266,7 +266,7 @@ async function checkPiece(block_id, frag_id, piece_num, checked) {
 function renderAssembleTab(block, assy) {
     const allCut = block.fragments.every(f => f.cut);
     if (!allCut) {
-        return `<p class="tab-hint">Mark all segments as cut first, then come back here to assemble.</p>`;
+        return `<p class="tab-hint">Mark all segments as ready in the Segments tab first.</p>`;
     }
     if (!assy) {
         const f = block.fragments[0];
