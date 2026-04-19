@@ -229,11 +229,22 @@ main {
     border: 1px solid #0f3460;
 }
 
-.cut-guide-img {
-    display: block;
-    width: 100%;
-    height: auto;
+.frag-piece-list { padding: 6px 8px; }
+
+.frag-piece-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 0.8rem;
+    border-bottom: 1px solid #0f3460;
+    align-items: baseline;
 }
+
+.fp-fabric { color: #90caf9; }
+.fp-tmpl   { color: #fff; font-weight: bold; }
+.fp-qty    { color: #ffd180; }
+.fp-page   { color: #555; font-size: 0.7rem; }
 
 .check-group {
     display: flex;

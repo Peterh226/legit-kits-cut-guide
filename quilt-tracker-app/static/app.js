@@ -172,19 +172,20 @@ function toggleFragDiagram(frag_id) {
 }
 
 function renderFragDiagram(frag_id) {
-    // Find pieces for this fragment and get their unique cut guide pages
     const fragPieces = (currentBlock.pieces || []).filter(p =>
         p.template === frag_id || p.template.startsWith(frag_id)
     );
     if (!fragPieces.length) return "";
 
-    const pages = [...new Set(fragPieces.map(p => p.page))].sort((a, b) => a - b);
-    const imgs = pages.map(pg => {
-        const filename = "cut_" + String(pg).padStart(3, "0") + ".jpg";
-        return `<img src="/static/cut/${filename}" alt="Cut guide page ${pg}" class="cut-guide-img">`;
-    }).join("");
+    const rows = fragPieces.map(p => `
+        <div class="frag-piece-row">
+            <span class="fp-fabric">${p.fabric_code} — ${p.fabric_name}</span>
+            <span class="fp-tmpl">${p.template}</span>
+            <span class="fp-qty">×${p.quantity}</span>
+            <span class="fp-page">p.${p.page}</span>
+        </div>`).join("");
 
-    return `<div class="frag-diagram">${imgs}</div>`;
+    return `<div class="frag-diagram"><div class="frag-piece-list">${rows}</div></div>`;
 }
 
 // ── Assemble tab ──────────────────────────────────────────────────────────
