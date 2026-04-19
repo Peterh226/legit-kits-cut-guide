@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quilt Tracker — {{ pattern_name }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+    <h1>{{ pattern_name }}</h1>
+    <div class="stats-bar">
+        <div class="stat complete">
+            <span class="val" id="stat-complete">—</span>
+            <span>Complete</span>
+        </div>
+        <div class="stat progress">
+            <span class="val" id="stat-progress">—</span>
+            <span>In Progress</span>
+        </div>
+        <div class="stat remaining">
+            <span class="val" id="stat-remaining">—</span>
+            <span>Not Started</span>
+        </div>
+        <div class="stat pct">
+            <span class="val" id="stat-pct">—</span>
+            <span>Done</span>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="quilt-wrap">
+        <div id="quilt-grid"></div>
+    </div>
+    <div class="detail-panel" id="detail-panel">
+        <h2>Block Detail</h2>
+        <p class="detail-empty">Click a block on the quilt to see its pieces and track progress.</p>
+    </div>
+</main>
+
+<div class="legend">
+    <div class="legend-item">
+        <div class="legend-swatch swatch-not_started"></div>
+        <span>Not Started</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-swatch swatch-in_progress"></div>
+        <span>In Progress</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-swatch swatch-complete"></div>
+        <span>Complete</span>
+    </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

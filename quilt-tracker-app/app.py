@@ -1,0 +1,260 @@
+"""
+Quilt Tracker App
+==================
+Flask web app for tracking quilt progress.
+Reads pattern data from ../data/ and stores progress in progress.json.
+
+Usage:
+    python3 app.py
+    python3 app.py --port 3001
+
+Access at http://<pi-ip>:3001
+"""
+
+import argparse
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+from flask import Flask, jsonify, request, render_template
+
+app = Flask(__name__)
+
+DATA_DIR  = Path(__file__).parent.parent / "data"
+PROG_FILE = Path(__file__).parent / "progress.json"
+
+
+# ---------------------------------------------------------------------------
+# Load pattern data
+# ---------------------------------------------------------------------------
+
+def load_pattern():
+    """Load cut guide and assembly data into a unified pattern dict."""
+    # Cut guide data
+    cut_globals = {}
+    exec((DATA_DIR / "cut_guide_data.py").read_text(encoding="utf-8"), cut_globals)
+    DATA = cut_globals["DATA"]
+
+    # Assembly data
+    asm_globals = {}
+    exec((DATA_DIR / "assembly_data.py").read_text(encoding="utf-8"), asm_globals)
+    BLOCKS = asm_globals["BLOCKS"]
+
+    # Overview data (pattern name, fabric list)
+    overview_path = DATA_DIR / "overview_data.json"
+    overview = json.loads(overview_path.read_text(encoding="utf-8")) if overview_path.exists() else []
+
+    # Pattern name from overview
+    pattern_name = "Quilt"
+    for page in overview:
+        if page.get("quilt_name"):
+            pattern_name = page["quilt_name"]
+            break
+
+    # Fabric info keyed by code
+    fabrics = {}
+    for row in DATA:
+        code, name, sku, size, piece_num, tmpl, qty, page = row
+        if code not in fabrics:
+            fabrics[code] = {"name": name, "sku": sku, "size": size, "page": page, "pieces": []}
+        fabrics[code]["pieces"].append({
+            "piece_num": piece_num,
+            "template":  tmpl,
+            "quantity":  qty,
+        })
+
+    # Build block info: fragments and which fabrics/pieces are involved
+    blocks = {}
+    # Map template prefix (e.g. "F3") -> block_id
+    tmpl_to_block = {}
+    for block_id in BLOCKS:
+        for frag in BLOCKS[block_id]:
+            # Fragment prefix matches template code prefix (e.g. B7a -> B7)
+            tmpl_to_block[frag] = block_id
+
+    # Which pieces belong to each block
+    block_pieces = defaultdict(list)
+    for row in DATA:
+        code, name, sku, size, piece_num, tmpl, qty, page = row
+        # Match template code to a fragment (strip trailing lowercase letter for multi-frag)
+        matched_block = None
+        for frag_id, block_id in tmpl_to_block.items():
+            if tmpl == frag_id or tmpl.startswith(frag_id):
+                matched_block = block_id
+                break
+        if matched_block:
+            block_pieces[matched_block].append({
+                "fabric_code": code,
+                "fabric_name": name,
+                "piece_num":   piece_num,
+                "template":    tmpl,
+                "quantity":    qty,
+            })
+
+    for block_id, frags in BLOCKS.items():
+        blocks[block_id] = {
+            "fragments": frags,
+            "is_single": len(frags) == 1,
+            "pieces":    block_pieces.get(block_id, []),
+        }
+
+    return {
+        "name":    pattern_name,
+        "blocks":  blocks,
+        "fabrics": fabrics,
+        "grid":    [f"{r}{c}" for r in "ABCDEFGH" for c in "12345678"],
+    }
+
+
+PATTERN = load_pattern()
+
+
+# ---------------------------------------------------------------------------
+# Progress state
+# ---------------------------------------------------------------------------
+
+def load_progress() -> dict:
+    if PROG_FILE.exists():
+        return json.loads(PROG_FILE.read_text(encoding="utf-8"))
+    return {}
+
+
+def save_progress(progress: dict):
+    PROG_FILE.write_text(json.dumps(progress, indent=2), encoding="utf-8")
+
+
+def compute_block_status(block_id: str, progress: dict) -> str:
+    """Return 'complete', 'in_progress', or 'not_started'."""
+    frags = PATTERN["blocks"][block_id]["fragments"]
+    bp = progress.get(block_id, {})
+    done = sum(1 for f in frags if bp.get(f, {}).get("assembled", False))
+    if done == len(frags):
+        return "complete"
+    if done > 0 or any(bp.get(f, {}).get("cut", False) for f in frags):
+        return "in_progress"
+    return "not_started"
+
+
+def build_stats(progress: dict) -> dict:
+    statuses = [compute_block_status(b, progress) for b in PATTERN["blocks"]]
+    total = len(statuses)
+    complete = statuses.count("complete")
+    in_progress = statuses.count("in_progress")
+    return {
+        "total":       total,
+        "complete":    complete,
+        "in_progress": in_progress,
+        "not_started": total - complete - in_progress,
+        "pct_complete": round(complete / total * 100) if total else 0,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.route("/")
+def index():
+    return render_template("index.html", pattern_name=PATTERN["name"])
+
+
+@app.route("/api/pattern")
+def api_pattern():
+    progress = load_progress()
+    grid = []
+    for block_id in PATTERN["blocks"]:
+        b = PATTERN["blocks"][block_id]
+        frags = b["fragments"]
+        bp = progress.get(block_id, {})
+        grid.append({
+            "id":        block_id,
+            "row":       block_id[0],
+            "col":       int(block_id[1]),
+            "fragments": [
+                {
+                    "id":       f,
+                    "cut":      bp.get(f, {}).get("cut", False),
+                    "assembled": bp.get(f, {}).get("assembled", False),
+                }
+                for f in frags
+            ],
+            "status":    compute_block_status(block_id, progress),
+            "is_single": b["is_single"],
+            "piece_count": len(b["pieces"]),
+        })
+    return jsonify({
+        "name":  PATTERN["name"],
+        "grid":  grid,
+        "stats": build_stats(progress),
+    })
+
+
+@app.route("/api/block/<block_id>")
+def api_block(block_id):
+    if block_id not in PATTERN["blocks"]:
+        return jsonify({"error": "Unknown block"}), 404
+    progress = load_progress()
+    b = PATTERN["blocks"][block_id]
+    bp = progress.get(block_id, {})
+    return jsonify({
+        "id":       block_id,
+        "status":   compute_block_status(block_id, progress),
+        "fragments": [
+            {
+                "id":       f,
+                "cut":      bp.get(f, {}).get("cut", False),
+                "assembled": bp.get(f, {}).get("assembled", False),
+            }
+            for f in b["fragments"]
+        ],
+        "pieces": b["pieces"],
+    })
+
+
+@app.route("/api/progress", methods=["POST"])
+def api_update_progress():
+    data = request.json
+    block_id = data.get("block_id")
+    frag_id  = data.get("fragment_id")
+    field    = data.get("field")   # "cut" or "assembled"
+    value    = data.get("value")   # true or false
+
+    if not all([block_id, frag_id, field in ("cut", "assembled")]):
+        return jsonify({"error": "Invalid request"}), 400
+    if block_id not in PATTERN["blocks"]:
+        return jsonify({"error": "Unknown block"}), 404
+
+    progress = load_progress()
+    progress.setdefault(block_id, {}).setdefault(frag_id, {})
+    progress[block_id][frag_id][field] = value
+
+    # If marking assembled, also mark cut
+    if field == "assembled" and value:
+        progress[block_id][frag_id]["cut"] = True
+
+    save_progress(progress)
+    return jsonify({
+        "status": compute_block_status(block_id, progress),
+        "stats":  build_stats(progress),
+    })
+
+
+@app.route("/api/progress/reset", methods=["POST"])
+def api_reset():
+    save_progress({})
+    return jsonify({"ok": True, "stats": build_stats({})})
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=3001)
+    parser.add_argument("--host", default="0.0.0.0")
+    args = parser.parse_args()
+    print(f"Quilt Tracker: http://{args.host}:{args.port}")
+    print(f"Pattern: {PATTERN['name']} — {len(PATTERN['blocks'])} blocks, {len(PATTERN['fabrics'])} fabrics")
+    app.run(host=args.host, port=args.port, debug=False)
