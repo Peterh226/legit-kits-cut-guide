@@ -168,9 +168,6 @@ main {
 .detail-panel h2 {
     font-size: 1rem;
     color: #e94560;
-    margin-bottom: 14px;
-    border-bottom: 1px solid #0f3460;
-    padding-bottom: 8px;
 }
 
 .detail-empty {
@@ -231,18 +228,18 @@ main {
 .piece-check-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
     padding: 4px 0;
     font-size: 0.82rem;
     border-bottom: 1px solid #0d1f3c;
     font-family: monospace;
 }
 
-.piece-check-row input { cursor: pointer; accent-color: #4caf50; flex-shrink: 0; }
+.piece-check-row input { cursor: pointer; accent-color: #4caf50; flex-shrink: 0; margin-right: 4px; }
 
-.pc-tmpl   { color: #ccc; min-width: 52px; }
-.pc-num    { color: #888; min-width: 28px; }
-.pc-fabric { color: #90caf9; font-weight: bold; }
+.pc-tmpl   { color: #ccc; }
+.pc-num    { color: #888; margin-left: 2px; }
+.pc-fabric { color: #90caf9; font-weight: bold; margin-left: 8px; }
 
 .check-group {
     display: flex;
@@ -279,14 +276,28 @@ main {
 .piece-row .p-tmpl { color: #fff; }
 .piece-row .p-qty  { color: #ffd180; text-align: center; }
 
+.start-date {
+    font-size: 0.75rem;
+    color: #555;
+    font-style: italic;
+}
+
 /* ── Block summary ── */
-.block-summary {
-    font-size: 0.8rem;
-    color: #888;
-    margin-bottom: 12px;
+.block-header-row {
     display: flex;
-    gap: 6px;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.block-summary {
+    font-size: 0.78rem;
+    color: #888;
+    display: flex;
+    gap: 5px;
     align-items: center;
+    white-space: nowrap;
 }
 
 .sum-done { color: #4caf50; font-weight: bold; }

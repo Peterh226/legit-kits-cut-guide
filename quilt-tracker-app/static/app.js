@@ -11,6 +11,17 @@ let pieceChecks = {};      // {block_id: {frag_id: {piece_num: bool}}} — sessi
 // ── Boot ──────────────────────────────────────────────────────────────────
 
 async function init() {
+    // Load persisted piece checks before rendering
+    const pp = await fetch("/api/piece_progress").then(r => r.json());
+    for (const [bid, frags] of Object.entries(pp)) {
+        pieceChecks[bid] = {};
+        for (const [fid, pieces] of Object.entries(frags)) {
+            pieceChecks[bid][fid] = {};
+            for (const [num, val] of Object.entries(pieces)) {
+                pieceChecks[bid][fid][num] = val;
+            }
+        }
+    }
     await refreshPattern();
 }
 
@@ -19,7 +30,17 @@ async function refreshPattern() {
     patternData = await res.json();
     renderStats(patternData.stats);
     renderGrid(patternData.grid);
+    if (patternData.start_date) {
+        const el = document.getElementById("start-date");
+        if (el) el.textContent = "Started " + formatDate(patternData.start_date);
+    }
     if (selectedBlock) await loadDetail(selectedBlock);
+}
+
+function formatDate(iso) {
+    const [y, m, d] = iso.split("-");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${months[+m - 1]} ${+d}, ${y}`;
 }
 
 // ── Stats bar ─────────────────────────────────────────────────────────────
@@ -109,20 +130,22 @@ function renderDetail(block, assy) {
         activeTab = block.fragments.some(f => f.cut) ? "assemble" : "cut";
     }
 
-    const total    = block.fragments.length;
-    const nCut     = block.fragments.filter(f => f.cut).length;
+    const total      = block.fragments.length;
+    const nCut       = block.fragments.filter(f => f.cut).length;
     const nAssembled = block.fragments.filter(f => f.assembled).length;
 
     panel.innerHTML = `
-        <h2>Block ${block.id}</h2>
-        <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
-        <div class="block-summary">
-            <span class="${nCut === total ? "sum-done" : "sum-pend"}">${nCut}/${total} cut</span>
-            <span class="sum-sep">·</span>
-            <span class="${nAssembled === total ? "sum-done" : "sum-pend"}">${nAssembled}/${total} assembled</span>
+        <div class="block-header-row">
+            <h2>Block ${block.id}</h2>
+            <div class="block-summary">
+                <span class="${nCut === total ? "sum-done" : "sum-pend"}">${nCut}/${total} cut</span>
+                <span class="sum-sep">·</span>
+                <span class="${nAssembled === total ? "sum-done" : "sum-pend"}">${nAssembled}/${total} assembled</span>
+            </div>
         </div>
+        <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
         <div class="detail-tabs">
-            <button class="tab-btn ${activeTab === "cut"     ? "active" : ""}" onclick="switchTab('cut')">Cut</button>
+            <button class="tab-btn ${activeTab === "cut"      ? "active" : ""}" onclick="switchTab('cut')">Segments</button>
             <button class="tab-btn ${activeTab === "assemble" ? "active" : ""}" onclick="switchTab('assemble')">Assemble</button>
         </div>
         <div id="tab-cut"      class="tab-content" style="display:${activeTab === "cut"      ? "block" : "none"}">${renderCutTab(block)}</div>
@@ -179,7 +202,7 @@ function renderFragPieces(frag_id) {
     const fragMap     = blockChecks[frag_id] || {};
 
     const rows = fragPieces.map((p, i) => {
-        const checked = fragMap[p.piece_num] || false;
+        const checked = fragMap[String(p.piece_num)] || false;
         return `
             <div class="piece-check-row">
                 <input type="checkbox" ${checked ? "checked" : ""}
@@ -215,7 +238,14 @@ async function toggleFragCut(block_id, frag_id, checked) {
 async function checkPiece(block_id, frag_id, piece_num, checked) {
     if (!pieceChecks[block_id]) pieceChecks[block_id] = {};
     if (!pieceChecks[block_id][frag_id]) pieceChecks[block_id][frag_id] = {};
-    pieceChecks[block_id][frag_id][piece_num] = checked;
+    pieceChecks[block_id][frag_id][String(piece_num)] = checked;
+
+    // Persist to server
+    fetch("/api/piece_progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ block_id, frag_id, piece_num, checked }),
+    });
 
     // If all pieces now checked, auto-mark segment as cut
     const fragPieces = (currentBlock.pieces || []).filter(p =>
