@@ -51,6 +51,28 @@ main {
 /* ── Quilt grid ── */
 .quilt-wrap {
     flex: 0 0 auto;
+    position: relative;
+    padding: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-image: url("/static/quilt_overview.jpg");
+    background-size: cover;
+    background-position: center;
+}
+
+.quilt-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 15, 35, 0.72);
+    border-radius: 8px;
+    z-index: 0;
+}
+
+.quilt-labels,
+.quilt-row {
+    position: relative;
+    z-index: 1;
 }
 
 .quilt-labels {
