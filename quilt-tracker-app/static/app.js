@@ -8,14 +8,54 @@ let activeTab = null;      // 'cut' or 'assemble'
 let activeFrag = null;     // fragment id expanded in cut tab
 let pieceChecks  = {};     // {block_id: {frag_id: {piece_num_str: bool}}}
 let sewingChecks = {};     // {block_id: {step_index_str: bool}}
+let activeQuilt  = null;   // current quilt id
+
+// ── Quilt helpers ─────────────────────────────────────────────────────────
+
+function qp() {
+    return activeQuilt ? `?quilt=${encodeURIComponent(activeQuilt)}` : "";
+}
+
+function switchQuilt(quiltId) {
+    activeQuilt = quiltId;
+    localStorage.setItem("activeQuilt", quiltId);
+    // Update selector if present
+    const sel = document.getElementById("quilt-selector");
+    if (sel) sel.value = quiltId;
+    // Reset client state
+    patternData  = null;
+    selectedBlock = null;
+    currentBlock  = null;
+    currentAssy   = null;
+    activeTab     = null;
+    activeFrag    = null;
+    pieceChecks   = {};
+    sewingChecks  = {};
+    init();
+}
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 
 async function init() {
+    // Determine active quilt
+    if (!activeQuilt) {
+        const stored = localStorage.getItem("activeQuilt");
+        const res = await fetch("/api/quilts");
+        const quilts = await res.json();
+        if (!quilts.length) return;
+        const ids = quilts.map(q => q.id);
+        activeQuilt = (stored && ids.includes(stored)) ? stored : ids[0];
+        // Sync selector
+        const sel = document.getElementById("quilt-selector");
+        if (sel) sel.value = activeQuilt;
+    }
+
     const [pp, sp] = await Promise.all([
-        fetch("/api/piece_progress").then(r => r.json()),
-        fetch("/api/sewing_progress").then(r => r.json()),
+        fetch("/api/piece_progress" + qp()).then(r => r.json()),
+        fetch("/api/sewing_progress" + qp()).then(r => r.json()),
     ]);
+    pieceChecks  = {};
+    sewingChecks = {};
     for (const [bid, frags] of Object.entries(pp)) {
         pieceChecks[bid] = {};
         for (const [fid, pieces] of Object.entries(frags)) {
@@ -31,8 +71,10 @@ async function init() {
 }
 
 async function refreshPattern() {
-    const res = await fetch("/api/pattern");
+    const res = await fetch("/api/pattern" + qp());
     patternData = await res.json();
+    document.getElementById("quilt-title").textContent = patternData.name;
+    document.title = "Quilt Tracker — " + patternData.name;
     renderStats(patternData.stats);
     renderGrid(patternData.grid);
     if (patternData.start_date) {
@@ -116,7 +158,6 @@ function renderGrid(grid) {
 // ── Block selection ───────────────────────────────────────────────────────
 
 async function selectBlock(block_id) {
-    // Click selected block again → return to overview
     if (selectedBlock === block_id) {
         selectedBlock = null;
         activeTab = null;
@@ -136,8 +177,8 @@ async function selectBlock(block_id) {
 
 async function loadDetail(block_id) {
     const [blockRes, assyRes] = await Promise.all([
-        fetch(`/api/block/${block_id}`),
-        fetch(`/api/assembly/${block_id}`),
+        fetch(`/api/block/${block_id}` + qp()),
+        fetch(`/api/assembly/${block_id}` + qp()),
     ]);
     currentBlock = await blockRes.json();
     currentAssy = assyRes.ok ? await assyRes.json() : null;
@@ -163,7 +204,6 @@ function renderDetail(block, assy) {
     const nReady     = block.fragments.filter(f => f.cut).length;
     const nAssembled = block.fragments.filter(f => f.assembled).length;
 
-    // Count piece-level cuts from local+persisted state
     const blockChecks = pieceChecks[block.id] || {};
     const totalPieces = (block.pieces || []).length;
     const nPiecesCut  = (block.pieces || []).filter(p => {
@@ -314,7 +354,7 @@ async function checkPiece(block_id, frag_id, piece_num, checked) {
     if (!pieceChecks[block_id][frag_id]) pieceChecks[block_id][frag_id] = {};
     pieceChecks[block_id][frag_id][String(piece_num)] = checked;
 
-    fetch("/api/piece_progress", {
+    fetch("/api/piece_progress" + qp(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ block_id, frag_id, piece_num, checked }),
@@ -354,7 +394,6 @@ function renderAssembleTab(block, assy) {
         return `<p class="tab-hint">Mark all segments as ready in the Segments tab first.</p>`;
     }
 
-    // Single-fragment block with no assembly data
     if (!assy || !assy.sewing_sequence || !assy.sewing_sequence.length) {
         const f = block.fragments[0];
         return `
@@ -377,14 +416,13 @@ function renderAssyDiagram(assy, block) {
     const total = steps.length;
     const nDone = steps.filter((_, i) => blockChecks[String(i)]).length;
 
-    // Diagram image with bbox highlight only (no circles)
     const [l, t, r, b] = assy.bbox;
     const highlight = `<rect x="${l}%" y="${t}%" width="${r - l}%" height="${b - t}%"
         fill="rgba(233,69,96,0.06)" stroke="#e94560" stroke-width="2" stroke-dasharray="6 3"/>`;
 
     const diagramHtml = `
         <div class="assy-img-wrap">
-            <img src="/static/assy/${assy.image}" alt="Assembly diagram">
+            <img src="/quilts/${encodeURIComponent(activeQuilt)}/assy/${assy.image}" alt="Assembly diagram">
             <svg xmlns="http://www.w3.org/2000/svg">${highlight}</svg>
         </div>`;
 
@@ -418,13 +456,12 @@ async function checkSewingStep(block_id, step_index, checked) {
     if (!sewingChecks[block_id]) sewingChecks[block_id] = {};
     sewingChecks[block_id][String(step_index)] = checked;
 
-    fetch("/api/sewing_progress", {
+    fetch("/api/sewing_progress" + qp(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ block_id, step_index, checked }),
     });
 
-    // If all steps done, mark all fragments as assembled
     const steps = currentAssy && currentAssy.sewing_sequence ? currentAssy.sewing_sequence : [];
     const allDone = steps.length > 0 && steps.every((_, i) => sewingChecks[block_id][String(i)]);
     if (allDone) {
@@ -440,7 +477,7 @@ async function checkSewingStep(block_id, step_index, checked) {
 // ── Progress update ───────────────────────────────────────────────────────
 
 async function updateProgress(block_id, fragment_id, field, value) {
-    const res = await fetch("/api/progress", {
+    const res = await fetch("/api/progress" + qp(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ block_id, fragment_id, field, value }),
@@ -464,7 +501,7 @@ async function updateProgress(block_id, fragment_id, field, value) {
 
 async function resetProgress() {
     if (!confirm("Reset all progress? This cannot be undone.")) return;
-    const res = await fetch("/api/progress/reset", { method: "POST" });
+    const res = await fetch("/api/progress/reset" + qp(), { method: "POST" });
     const data = await res.json();
     renderStats(data.stats);
     selectedBlock = null;

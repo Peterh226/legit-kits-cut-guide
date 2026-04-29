@@ -3,13 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quilt Tracker — {{ pattern_name }}</title>
+    <title>Quilt Tracker</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
 <header>
-    <h1>{{ pattern_name }}</h1>
+    <div class="header-top">
+        <h1 id="quilt-title">{{ pattern_name }}</h1>
+        {% if quilts|length > 1 %}
+        <select id="quilt-selector" onchange="switchQuilt(this.value)">
+            {% for q in quilts %}
+            <option value="{{ q.id }}">{{ q.name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+    </div>
     <button id="reset-btn" onclick="resetProgress()">Reset All</button>
     <span id="start-date" class="start-date"></span>
     <div class="stats-bar">

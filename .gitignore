@@ -17,10 +17,13 @@ env/
 *.xlsx
 
 # Generated data (not committed — large or Pi-local)
-data/overview_data.json
+quilts/*/overview_data.json
 
 # Cut images not needed on Pi (piece list shown instead)
-quilt-tracker-app/static/cut/
+quilts/*/cut/
+
+# Per-quilt progress files (Pi-local, not committed)
+quilt-tracker-app/progress/
 
 # macOS
 .DS_Store
