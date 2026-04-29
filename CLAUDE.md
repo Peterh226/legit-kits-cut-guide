@@ -90,23 +90,25 @@ python extract.py <pattern_folder>        # Extract data from scanned images via
 
 ## Deployment on Raspberry Pi
 
-The app runs on the same RPi 4 as HomeTempDashboard (port 3001 vs 3000).
+The app runs on the same RPi 4 as HomeTempDashboard (port 3001 vs 3000), managed by pm2.
 
-**Auto-start on boot (crontab):**
-```
-@reboot sleep 10 && cd ~/legit-kits-cut-guide/quilt-tracker-app && python3 app.py
+**One-time setup:**
+```bash
+pip install flask openpyxl pillow anthropic
+pm2 start ~/legit-kits-cut-guide/quilt-tracker-app/app.py --name quilttracker --interpreter python3
+pm2 save
 ```
 
 **Update workflow:**
 ```bash
-git pull
-# restart the app process
+cd ~/legit-kits-cut-guide && git pull && pm2 restart quilttracker
 ```
 Then shift-refresh in the browser for CSS/JS changes.
 
-**Dependencies** (system-wide Python on Pi):
+**Useful commands:**
 ```bash
-pip install flask openpyxl pillow anthropic
+pm2 logs quilttracker    # live console output
+pm2 status               # check if running
 ```
 
 ## Configuration
