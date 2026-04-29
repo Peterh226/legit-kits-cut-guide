@@ -2,6 +2,46 @@
 
 This file provides guidance to Claude Code when working with code in this repository.
 
+## User View
+Legit Quilt Kit
+- Create a quilt based on several sub components.
+- Each quilt has a unique Name
+-   Example names
+-     Land Of The Free
+-     Skulliver
+- Each quilt is made up of blocks
+-   block columns are enumerated 1 to n, where n is typically 8
+-   block rows are enumerated A through H typically, but can be less
+-   from the assemlby jpg files, the images that contain Finished Quilt or Patter Side each will display the row and column numbers for each block.
+- Each block is made up of 0 or more segments
+-   If a block has 0 segments, then it is only made up of pieces
+- Segments are made up from more than one piece.
+- A piece is a unique unit of fabric cut to the shape defined from a pattern sheet. Pattern sheets are not a part of this application.
+-   See `cut_guide_data.py` — `DATA`
+-     Quantity is not the correct header as it is an identifier number for each cut piece used for the Segment or on a 0 segment block
+- Blocks are identified by Row and Column (Like A1)
+- Segments are identifies by the containing block plus a sequential letter
+- Pieces are identified with numbers inside a circle on the images.
+-   In the list of cuts on the Cut Guide jpg's, the piece identifiers are in parenthesis (like 3 in a circle in the graphics area, (3) after a segment id in the list)
+
+- User workflow
+- Processing of quilt data (images) and validation of data will result in a database that can be used by the web application.
+- The Web app can host multiple quilts. A user can switch between quilts as desired.
+
+-   Run a process to create the database and excel files for a quilt
+-     Input
+-       - JPG files organized into Overview, Cut and Assembly folders under the Quilt name
+-     Output
+-       - Excel files for QA and validation
+-       - Additional data extraction/tuniong may be needed to create the correct database for each quilt
+-       - Once validated, the data can then be made available in the Web App
+-       - Database as defined in architecture section
+-   Open Web App
+-     - provide way to add this new quilt to the app
+-     - User has access to multiple quilt data, but only one is active at a time in the UI.
+-     - Existing workflow is OK at this time.
+-   
+
 ## Running the Web App
 
 ```bash
