@@ -109,7 +109,6 @@ main {
 .quilt-grid-area {
     position: relative;
     width: 376px;
-    background-image: url("/static/quilt_overview.jpg");
     background-size: cover;
     background-position: center top;
     border-radius: 4px;

@@ -153,6 +153,8 @@ function renderGrid(grid) {
     body.appendChild(rowLabelsCol);
     body.appendChild(gridArea);
     container.appendChild(body);
+
+    gridArea.style.backgroundImage = `url("/quilts/${encodeURIComponent(activeQuilt)}/overview.jpg")`;
 }
 
 // ── Block selection ───────────────────────────────────────────────────────
