@@ -429,11 +429,8 @@ async function checkPiece(block_id, frag_id, piece_num, checked) {
         body: JSON.stringify({ block_id, frag_id, piece_num, checked }),
     });
 
-    if (activeTab === "fabrics") {
-        document.getElementById("tab-fabrics").innerHTML = renderFabricsTab(currentBlock);
-    } else {
-        document.getElementById("tab-cut").innerHTML = renderCutTab(currentBlock);
-    }
+    document.getElementById("tab-cut").innerHTML     = renderCutTab(currentBlock);
+    document.getElementById("tab-fabrics").innerHTML  = renderFabricsTab(currentBlock);
     refreshBlockSummary(currentBlock);
 }
 
