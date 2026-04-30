@@ -1,32 +1,34 @@
 """
 Legit Kits Cut Guide Generator
 ================================
-Reads fabric and piece data from data/cut_guide_data.py and produces
-a formatted Excel workbook: LandOfTheFree_CutGuide.xlsx
+Reads fabric and piece data from quilts/<quilt-id>/cut_guide_data.py and produces
+a formatted Excel workbook: <QuiltName>_CutGuide.xlsx
 
 Usage:
-    python generate.py
-    python generate.py --output my_custom_name.xlsx
+    python generate.py --quilt-id skulliver
+    python generate.py --quilt-id land-of-the-free
+    python generate.py --quilt-id skulliver --output my_custom_name.xlsx
 
 Requirements:
     pip install openpyxl
 """
 
 import argparse
+import json
 from collections import defaultdict
+from pathlib import Path
+
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-
-from data.cut_guide_data import DATA
 
 
 # ---------------------------------------------------------------------------
 # Style constants
 # ---------------------------------------------------------------------------
-HEADER_FILL     = PatternFill("solid", start_color="2F4F4F")   # dark teal
-STAT_FILL       = PatternFill("solid", start_color="1F3F6F")   # dark blue
-SECTION_FILL    = PatternFill("solid", start_color="4A7BA7")   # mid blue
+HEADER_FILL     = PatternFill("solid", start_color="2F4F4F")
+STAT_FILL       = PatternFill("solid", start_color="1F3F6F")
+SECTION_FILL    = PatternFill("solid", start_color="4A7BA7")
 ALT_FILL        = PatternFill("solid", start_color="F2F2F2")
 WHITE_FILL      = PatternFill("solid", start_color="FFFFFF")
 HEADER_FONT     = Font(name="Arial", bold=True, color="FFFFFF", size=11)
@@ -90,9 +92,39 @@ def _section_header(ws, row, col_start, col_end, title):
 
 
 # ---------------------------------------------------------------------------
+# Data loading
+# ---------------------------------------------------------------------------
+
+def _load_quilt(quilt_id):
+    root = Path(__file__).parent
+    quilt_dir = root / "quilts" / quilt_id
+    if not quilt_dir.exists():
+        raise SystemExit(f"Error: quilts/{quilt_id}/ not found")
+    g = {}
+    exec((quilt_dir / "cut_guide_data.py").read_text(encoding="utf-8"), g)
+    config_path = quilt_dir / "config.json"
+    config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    quilt_name = config.get("quilt_name", quilt_id)
+    return g["DATA"], quilt_name
+
+
+def _default_quilt_id():
+    quilts_dir = Path(__file__).parent / "quilts"
+    ids = sorted(p.name for p in quilts_dir.iterdir() if p.is_dir()) if quilts_dir.exists() else []
+    if not ids:
+        raise SystemExit("Error: no quilts found in quilts/")
+    return ids[0]
+
+
+def _output_name(quilt_name):
+    return "".join(w.capitalize() for w in quilt_name.split()) + "_CutGuide.xlsx"
+
+
+# ---------------------------------------------------------------------------
 # Aggregate statistics from DATA
 # ---------------------------------------------------------------------------
-def _compute_stats():
+
+def _compute_stats(DATA):
     fabric_info   = {}
     template_freq = defaultdict(int)
     page_fabrics  = defaultdict(list)
@@ -136,7 +168,8 @@ def _compute_stats():
 # ---------------------------------------------------------------------------
 # Sheet: Cut Guide
 # ---------------------------------------------------------------------------
-def build_cut_guide_sheet(wb):
+
+def build_cut_guide_sheet(wb, DATA):
     ws = wb.active
     ws.title = "Cut Guide"
 
@@ -148,7 +181,7 @@ def build_cut_guide_sheet(wb):
         ("Piece #",       10),
         ("Template Code", 16),
         ("Quantity",      10),
-        ("Page",           10),
+        ("Page",          10),
     ]
     for col, (label, width) in enumerate(headers, 1):
         _header_cell(ws, 1, col, label, width)
@@ -171,6 +204,7 @@ def build_cut_guide_sheet(wb):
 # ---------------------------------------------------------------------------
 # Sheet: By Fabric Code
 # ---------------------------------------------------------------------------
+
 def build_summary_sheet(wb, stats):
     ws = wb.create_sheet("By Fabric Code")
 
@@ -179,7 +213,7 @@ def build_summary_sheet(wb, stats):
         ("Fabric Name",  18),
         ("SKU",          10),
         ("Fabric Size",  22),
-        ("Page",     10),
+        ("Page",         10),
         ("Piece Rows",   12),
         ("Total Cuts",   12),
     ]
@@ -203,6 +237,7 @@ def build_summary_sheet(wb, stats):
 # ---------------------------------------------------------------------------
 # Sheet: By Page
 # ---------------------------------------------------------------------------
+
 def build_page_sheet(wb, stats):
     ws = wb.create_sheet("By Page")
 
@@ -216,7 +251,6 @@ def build_page_sheet(wb, stats):
         _header_cell(ws, 1, col, label, width)
     ws.row_dimensions[1].height = 28
 
-    # Build page -> [(code, name, piece_count)] sorted by page then code
     page_rows = defaultdict(list)
     for code, info in stats["fabric_info"].items():
         page_rows[info["page"]].append((code, info["name"], info["piece_count"]))
@@ -237,25 +271,24 @@ def build_page_sheet(wb, stats):
 # ---------------------------------------------------------------------------
 # Sheet: Statistics
 # ---------------------------------------------------------------------------
+
 def build_stats_sheet(wb, stats):
     ws = wb.create_sheet("Statistics")
     ws.sheet_view.showGridLines = False
-    ws.column_dimensions["A"].width = 3   # left margin
+    ws.column_dimensions["A"].width = 3
 
-    # ── KPI tiles ───────────────────────────────────────────────────────────
-    _stat_block(ws, 2, 2, "Total Fabrics",  stats["total_fabrics"],  label_width=18)
-    _stat_block(ws, 2, 3, "Piece Rows",     stats["total_pieces"],   label_width=18)
-    _stat_block(ws, 2, 4, "Total Cuts",     stats["total_cuts"],     label_width=18)
-    _stat_block(ws, 2, 5, "Pages",      stats["max_page"],       label_width=18)
+    _stat_block(ws, 2, 2, "Total Fabrics",  stats["total_fabrics"],        label_width=18)
+    _stat_block(ws, 2, 3, "Piece Rows",     stats["total_pieces"],         label_width=18)
+    _stat_block(ws, 2, 4, "Total Cuts",     stats["total_cuts"],           label_width=18)
+    _stat_block(ws, 2, 5, "Pages",          stats["max_page"],             label_width=18)
     _stat_block(ws, 2, 6, "2-Block Pages",  len(stats["two_block_pages"]), label_width=18)
 
     row = 6
 
-    # ── Top 15 templates ────────────────────────────────────────────────────
     _section_header(ws, row, 2, 4, "Top 15 Templates by Total Cuts")
     row += 1
-    _header_cell(ws, row, 2, "Template",     14)
-    _header_cell(ws, row, 3, "Total Cuts",   14)
+    _header_cell(ws, row, 2, "Template",      14)
+    _header_cell(ws, row, 3, "Total Cuts",    14)
     _header_cell(ws, row, 4, "% of All Cuts", 16)
     row += 1
     for tmpl, cuts in stats["top_templates"]:
@@ -266,7 +299,6 @@ def build_stats_sheet(wb, stats):
         row += 1
     row += 1
 
-    # ── Top 10 fabrics by piece rows ────────────────────────────────────────
     _section_header(ws, row, 2, 5, "Top 10 Fabrics by Piece Rows")
     row += 1
     _header_cell(ws, row, 2, "Code",        10)
@@ -282,7 +314,6 @@ def build_stats_sheet(wb, stats):
         row += 1
     row += 1
 
-    # ── Top 10 fabrics by total cuts ────────────────────────────────────────
     _section_header(ws, row, 2, 5, "Top 10 Fabrics by Total Cuts")
     row += 1
     _header_cell(ws, row, 2, "Code",        10)
@@ -298,13 +329,12 @@ def build_stats_sheet(wb, stats):
         row += 1
     row += 1
 
-    # ── Fabric size breakdown ────────────────────────────────────────────────
     _section_header(ws, row, 2, 5, "Fabric Sizes — Fabrics per Size Category")
     row += 1
-    _header_cell(ws, row, 2, "Fabric Size",       22)
-    _header_cell(ws, row, 3, "# Fabrics",         12)
-    _header_cell(ws, row, 4, "Total Piece Rows",  16)
-    _header_cell(ws, row, 5, "Total Cuts",        12)
+    _header_cell(ws, row, 2, "Fabric Size",      22)
+    _header_cell(ws, row, 3, "# Fabrics",        12)
+    _header_cell(ws, row, 4, "Total Piece Rows", 16)
+    _header_cell(ws, row, 5, "Total Cuts",       12)
     row += 1
     for size, count in sorted(stats["size_counts"].items(), key=lambda x: -x[1]):
         _data_cell(ws, row, 2, size)
@@ -314,13 +344,12 @@ def build_stats_sheet(wb, stats):
         row += 1
     row += 1
 
-    # ── Two-block pages ──────────────────────────────────────────────────────
     _section_header(ws, row, 2, 5,
                     f"Pages with Two Fabrics ({len(stats['two_block_pages'])} pages)")
     row += 1
-    _header_cell(ws, row, 2, "Page",     10)
-    _header_cell(ws, row, 3, "Fabric 1",     14)
-    _header_cell(ws, row, 4, "Fabric 2",     14)
+    _header_cell(ws, row, 2, "Page",       10)
+    _header_cell(ws, row, 3, "Fabric 1",   14)
+    _header_cell(ws, row, 4, "Fabric 2",   14)
     _header_cell(ws, row, 5, "Fabric Names", 32)
     row += 1
     for pg in sorted(stats["two_block_pages"].keys()):
@@ -336,28 +365,30 @@ def build_stats_sheet(wb, stats):
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
-def generate(output_path: str = "LandOfTheFree_CutGuide.xlsx"):
-    stats = _compute_stats()
+
+def generate(quilt_id, output_path=None):
+    DATA, quilt_name = _load_quilt(quilt_id)
+    if output_path is None:
+        output_path = _output_name(quilt_name)
+    stats = _compute_stats(DATA)
     wb = Workbook()
-    build_cut_guide_sheet(wb)
+    build_cut_guide_sheet(wb, DATA)
     build_summary_sheet(wb, stats)
     build_page_sheet(wb, stats)
     build_stats_sheet(wb, stats)
     wb.save(output_path)
 
     print(f"Generated : {output_path}")
+    print(f"  Quilt   : {quilt_name}")
     print(f"  Fabrics : {stats['total_fabrics']}")
     print(f"  Pieces  : {stats['total_pieces']}")
     print(f"  Cuts    : {stats['total_cuts']}")
-    print(f"  2-block pages detected: {len(stats['two_block_pages'])}")
+    print(f"  2-block pages: {len(stats['two_block_pages'])}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate Legit Kits Cut Guide spreadsheet")
-    parser.add_argument(
-        "--output", "-o",
-        default="LandOfTheFree_CutGuide.xlsx",
-        help="Output filename (default: LandOfTheFree_CutGuide.xlsx)"
-    )
+    parser.add_argument("--quilt-id", "-q", help="Quilt ID (default: first in quilts/)")
+    parser.add_argument("--output",   "-o", help="Output filename (default: <QuiltName>_CutGuide.xlsx)")
     args = parser.parse_args()
-    generate(args.output)
+    generate(args.quilt_id or _default_quilt_id(), args.output)

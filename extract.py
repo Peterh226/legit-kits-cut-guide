@@ -735,9 +735,9 @@ def main() -> None:
 
     if not args.dry_run and not args.page and not args.pages and args.stage == "all":
         print("\n=== Running generate.py ===")
-        subprocess.run([sys.executable, "generate.py"], check=False)
+        subprocess.run([sys.executable, "generate.py", "--quilt-id", quilt_id], check=False)
         print("\n=== Running tracking.py ===")
-        subprocess.run([sys.executable, "tracking.py"], check=False)
+        subprocess.run([sys.executable, "tracking.py", "--quilt-id", quilt_id], check=False)
 
     print("\nDone.")
 
