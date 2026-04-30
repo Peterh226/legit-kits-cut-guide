@@ -4,11 +4,12 @@ let patternData = null;
 let selectedBlock = null;
 let currentBlock = null;
 let currentAssy = null;
-let activeTab = null;      // 'cut' or 'assemble'
+let activeTab = null;      // 'cut', 'fabrics', or 'assemble'
 let activeFrag = null;     // fragment id expanded in cut tab
 let pieceChecks  = {};     // {block_id: {frag_id: {piece_num_str: bool}}}
 let sewingChecks = {};     // {block_id: {step_index_str: bool}}
 let activeQuilt  = null;   // current quilt id
+let excelFiles   = [];     // cached list of xlsx files
 
 // ── Quilt helpers ─────────────────────────────────────────────────────────
 
@@ -48,6 +49,10 @@ async function init() {
         // Sync selector
         const sel = document.getElementById("quilt-selector");
         if (sel) sel.value = activeQuilt;
+    }
+
+    if (!excelFiles.length) {
+        excelFiles = await fetch("/api/excel").then(r => r.json()).catch(() => []);
     }
 
     const [pp, sp] = await Promise.all([
@@ -227,9 +232,11 @@ function renderDetail(block, assy) {
         <div class="block-status-badge badge-${block.status}">${statusLabel}</div>
         <div class="detail-tabs">
             <button class="tab-btn ${activeTab === "cut"      ? "active" : ""}" data-tab="cut"      onclick="switchTab('cut')">Segments</button>
+            <button class="tab-btn ${activeTab === "fabrics"  ? "active" : ""}" data-tab="fabrics"  onclick="switchTab('fabrics')">Fabrics</button>
             <button class="tab-btn ${activeTab === "assemble" ? "active" : ""}" data-tab="assemble" onclick="switchTab('assemble')">Assemble</button>
         </div>
         <div id="tab-cut"      class="tab-content" style="display:${activeTab === "cut"      ? "block" : "none"}">${renderCutTab(block)}</div>
+        <div id="tab-fabrics"  class="tab-content" style="display:${activeTab === "fabrics"  ? "block" : "none"}">${renderFabricsTab(block)}</div>
         <div id="tab-assemble" class="tab-content" style="display:${activeTab === "assemble" ? "block" : "none"}">${renderAssembleTab(block, assy)}</div>
     `;
 }
@@ -240,6 +247,7 @@ function switchTab(tab) {
         b.classList.toggle("active", b.dataset.tab === tab)
     );
     document.getElementById("tab-cut").style.display      = tab === "cut"      ? "block" : "none";
+    document.getElementById("tab-fabrics").style.display  = tab === "fabrics"  ? "block" : "none";
     document.getElementById("tab-assemble").style.display = tab === "assemble" ? "block" : "none";
 }
 
@@ -248,6 +256,13 @@ function switchTab(tab) {
 function renderOverview(stats) {
     const panel = document.getElementById("detail-panel");
     const pct = stats.pct_complete;
+
+    const xlsxHtml = excelFiles.length ? `
+        <div class="excel-links">
+            <h3>Spreadsheets</h3>
+            ${excelFiles.map(f => `<a href="/api/excel/${encodeURIComponent(f)}" class="excel-link">${f}</a>`).join("")}
+        </div>` : "";
+
     panel.innerHTML = `
         <h2>Quilt Overview</h2>
         <div class="overview-progress-bar">
@@ -268,6 +283,7 @@ function renderOverview(stats) {
                 <span class="ov-label">of ${stats.total} not started</span>
             </div>
         </div>
+        ${xlsxHtml}
         <p class="tab-hint" style="margin-top:16px">Click any block to view details. Click again to return here.</p>
     `;
 }
@@ -316,6 +332,57 @@ function renderCutTab(block) {
     return `<div class="fragment-list">${fragsHtml}</div>${hint}`;
 }
 
+// ── Fabrics tab ───────────────────────────────────────────────────────────
+
+function renderFabricsTab(block) {
+    const pieces = block.pieces || [];
+    if (!pieces.length) return '<p class="tab-hint">No pieces for this block.</p>';
+
+    const blockChecks = pieceChecks[block.id] || {};
+
+    // Group by fabric code
+    const byFabric = {};
+    for (const p of pieces) {
+        if (!byFabric[p.fabric_code]) byFabric[p.fabric_code] = { name: p.fabric_name, pieces: [] };
+        byFabric[p.fabric_code].pieces.push(p);
+    }
+
+    const sections = Object.entries(byFabric).sort(([a], [b]) => a.localeCompare(b)).map(([code, fabric]) => {
+        const total = fabric.pieces.length;
+        const done = fabric.pieces.filter(p => {
+            const frag = block.fragments.find(f => matchesFrag(p.template, f.id));
+            return frag && (blockChecks[frag.id] || {})[`${p.fabric_code}_${p.piece_num}`];
+        }).length;
+
+        const rows = fabric.pieces.map(p => {
+            const frag = block.fragments.find(f => matchesFrag(p.template, f.id));
+            const fragId = frag ? frag.id : null;
+            const pieceKey = `${p.fabric_code}_${p.piece_num}`;
+            const checked = fragId && (blockChecks[fragId] || {})[pieceKey];
+            return `
+                <div class="piece-check-row">
+                    <input type="checkbox" ${checked ? "checked" : ""} ${fragId ? "" : "disabled"}
+                        onchange="checkPiece('${block.id}','${fragId}','${pieceKey}',this.checked)">
+                    <span class="pc-tmpl">${p.template}</span>
+                    <span class="pc-num">(${p.piece_num})</span>
+                    <span class="pc-fabric">${code}</span>
+                </div>`;
+        }).join("");
+
+        return `
+            <div class="fabric-group ${done === total ? "fabric-done" : ""}">
+                <div class="fabric-group-header">
+                    <span class="fabric-code">${code}</span>
+                    <span class="fabric-name">${fabric.name}</span>
+                    <span class="fabric-tally">${done}/${total}</span>
+                </div>
+                <div class="frag-piece-list">${rows}</div>
+            </div>`;
+    }).join("");
+
+    return `<div class="fabric-list">${sections}</div>`;
+}
+
 function renderFragPieces(frag_id) {
     const fragPieces = (currentBlock.pieces || [])
         .filter(p => matchesFrag(p.template, frag_id))
@@ -362,7 +429,11 @@ async function checkPiece(block_id, frag_id, piece_num, checked) {
         body: JSON.stringify({ block_id, frag_id, piece_num, checked }),
     });
 
-    document.getElementById("tab-cut").innerHTML = renderCutTab(currentBlock);
+    if (activeTab === "fabrics") {
+        document.getElementById("tab-fabrics").innerHTML = renderFabricsTab(currentBlock);
+    } else {
+        document.getElementById("tab-cut").innerHTML = renderCutTab(currentBlock);
+    }
     refreshBlockSummary(currentBlock);
 }
 

@@ -390,6 +390,23 @@ def api_set_piece_progress():
     return jsonify({"ok": True})
 
 
+@app.route("/api/excel")
+def api_excel_list():
+    root = Path(__file__).parent.parent
+    files = sorted(p.name for p in root.glob("*.xlsx"))
+    return jsonify(files)
+
+
+@app.route("/api/excel/<filename>")
+def api_excel_download(filename):
+    if "/" in filename or "\\" in filename or not filename.endswith(".xlsx"):
+        return "", 400
+    path = Path(__file__).parent.parent / filename
+    if not path.exists():
+        return "", 404
+    return send_file(path, as_attachment=True)
+
+
 @app.route("/api/progress/reset", methods=["POST"])
 def api_reset():
     quilt_id = get_active_quilt()
