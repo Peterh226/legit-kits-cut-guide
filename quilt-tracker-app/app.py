@@ -13,6 +13,8 @@ Access at http://<pi-ip>:3001
 
 import argparse
 import json
+import subprocess
+import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -425,6 +427,23 @@ def api_reset():
 # Main
 # ---------------------------------------------------------------------------
 
+def _generate_excel_files():
+    root = Path(__file__).parent.parent
+    for quilt_id in get_quilt_ids():
+        config_path = QUILTS_DIR / quilt_id / "config.json"
+        config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+        quilt_name = config.get("quilt_name", quilt_id)
+        slug = "".join(w.capitalize() for w in quilt_name.split())
+        if not (root / f"{slug}_CutGuide.xlsx").exists():
+            print(f"Generating {slug}_CutGuide.xlsx ...")
+            subprocess.run([sys.executable, str(root / "generate.py"), "--quilt-id", quilt_id],
+                           check=False, cwd=str(root))
+        if not (root / f"{slug}_Tracker.xlsx").exists():
+            print(f"Generating {slug}_Tracker.xlsx ...")
+            subprocess.run([sys.executable, str(root / "tracking.py"), "--quilt-id", quilt_id],
+                           check=False, cwd=str(root))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=3001)
@@ -433,4 +452,5 @@ if __name__ == "__main__":
     quilts = get_quilt_ids()
     print(f"Quilt Tracker: http://{args.host}:{args.port}")
     print(f"Quilts found: {', '.join(quilts) if quilts else 'none'}")
+    _generate_excel_files()
     app.run(host=args.host, port=args.port, debug=False)
