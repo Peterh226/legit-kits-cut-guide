@@ -215,7 +215,9 @@ def quilt_overview_image(quilt_id):
     path = QUILTS_DIR / quilt_id / "quilt_overview.jpg"
     if not path.exists():
         return "", 404
-    return send_file(path, mimetype="image/jpeg")
+    response = send_file(path, mimetype="image/jpeg")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 
 @app.route("/quilts/<quilt_id>/assy/<filename>")
