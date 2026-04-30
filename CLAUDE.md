@@ -12,7 +12,7 @@ Legit Quilt Kit
 - Each quilt is made up of blocks
 -   block columns are enumerated 1 to n, where n is typically 8
 -   block rows are enumerated A through H typically, but can be less
--   from the assemlby jpg files, the images that contain Finished Quilt or Patter Side each will display the row and column numbers for each block.
+-   from the assembly jpg files, the images that contain Finished Quilt or Pattern Side each will display the row and column numbers for each block.
 - Each block is made up of 0 or more segments
 -   If a block has 0 segments, then it is only made up of pieces
 - Segments are made up from more than one piece.
@@ -20,7 +20,7 @@ Legit Quilt Kit
 -   See `cut_guide_data.py` — `DATA`
 -     Quantity is not the correct header as it is an identifier number for each cut piece used for the Segment or on a 0 segment block
 - Blocks are identified by Row and Column (Like A1)
-- Segments are identifies by the containing block plus a sequential letter
+- Segments are identified by the containing block plus a sequential letter
 - Pieces are identified with numbers inside a circle on the images.
 -   In the list of cuts on the Cut Guide jpg's, the piece identifiers are in parenthesis (like 3 in a circle in the graphics area, (3) after a segment id in the list)
 
@@ -28,19 +28,19 @@ Legit Quilt Kit
 - Processing of quilt data (images) and validation of data will result in a database that can be used by the web application.
 - The Web app can host multiple quilts. A user can switch between quilts as desired.
 
--   Run a process to create the database and excel files for a quilt
+-   Run extract.py to create data files for a new quilt
 -     Input
--       - JPG files organized into Overview, Cut and Assembly folders under the Quilt name
+-       - JPG files organized into overview/, cut/, and assy/ folders under the Quilt name
 -     Output
+-       - `quilts/<id>/cut_guide_data.py`, `assembly_data.py`, `assembly_guide.json`, `overview_data.json`
+-       - Staging files (`cut_raw.json`, etc.) for resume/re-run support
 -       - Excel files for QA and validation
--       - Additional data extraction/tuniong may be needed to create the correct database for each quilt
--       - Once validated, the data can then be made available in the Web App
--       - Database as defined in architecture section
+-       - Additional data extraction/tuning may be needed — use --page / --pages to re-run individual pages
+-       - Once validated, the data is automatically available in the Web App (auto-discovered)
 -   Open Web App
--     - provide way to add this new quilt to the app
--     - User has access to multiple quilt data, but only one is active at a time in the UI.
--     - Existing workflow is OK at this time.
--   
+-     - New quilts are auto-discovered from the quilts/ folder — no manual wiring needed
+-     - User can switch between quilts via the selector in the UI
+-     - Only one quilt is active at a time in the UI
 
 ## Running the Web App
 
@@ -55,37 +55,81 @@ Access at **http://localhost:3001** (or `http://<pi-ip>:3001` on the RPi).
 ## Running the Data Tools
 
 ```bash
-python generate.py                        # Generate LandOfTheFree_CutGuide.xlsx
-python tracking.py                        # Generate LandOfTheFree_Tracker.xlsx
-python lint.py                            # Validate data/cut_guide_data.py
-python extract.py <pattern_folder>        # Extract data from scanned images via Claude API
+python generate.py                        # Generate CutGuide.xlsx for active quilt
+python tracking.py                        # Generate Tracker.xlsx for active quilt
+python lint.py                            # Validate cut_guide_data.py
+python extract.py <pattern_folder>        # Extract all stages from scanned images
 ```
 
-`extract.py` requires `ANTHROPIC_API_KEY` in the environment.
+`extract.py` requires `ANTHROPIC_API_KEY` in the environment (or a `.env` file).
+
+### extract.py options
+
+```bash
+# Full extraction for a new quilt (auto-derives quilt-id from folder name)
+python extract.py ../Skulliver
+
+# Run only one stage
+python extract.py ../Skulliver --stage cut
+python extract.py ../Skulliver --stage assy
+python extract.py ../Skulliver --stage overview
+
+# Resume after a crash — skips already-processed pages
+python extract.py ../Skulliver --stage cut --resume
+
+# Re-run a single bad page (1-based)
+python extract.py ../Skulliver --stage cut --page 15
+
+# Re-run a range of pages
+python extract.py ../Skulliver --stage cut --pages 30-40
+
+# Check what has been processed and what errored
+python extract.py ../Skulliver --status
+
+# Write final output files from existing staging data (no API calls)
+python extract.py ../Skulliver --finalize
+
+# Process but don't write output files (for inspection)
+python extract.py ../Skulliver --stage cut --dry-run
+```
+
+Each page is checkpointed immediately after processing into staging files
+(`quilts/<id>/cut_raw.json`, etc.). A crash only loses the page in progress.
+`overview_001.jpg` is auto-copied as `quilt_overview.jpg` on first overview run
+(replace manually if a different image is needed as the background grid).
 
 ## Architecture
 
 **Flask Web App (`quilt-tracker-app/`)** — Python 3 / Flask, port 3001:
-- `app.py` — routes, progress logic, pattern data loading
-- `templates/index.html` — single-page UI
+- `app.py` — routes, progress logic, pattern data loading; auto-discovers quilts from `quilts/`
+- `templates/index.html` — single-page UI with quilt selector
 - `static/app.js`, `static/style.css` — frontend, no build step
-- `static/quilt_overview.jpg` — background grid image
-- `static/assy/` — assembly guide images (one per multi-fragment block)
-- Progress stored in three gitignored JSON files in `quilt-tracker-app/`:
+- Progress stored per-quilt in `quilt-tracker-app/progress/<quilt-id>/`:
   - `progress.json` — fragment-level status (not started / in progress / complete)
   - `piece_progress.json` — piece-level cut checkboxes
   - `sewing_progress.json` — sewing step checkboxes
 
-**Data layer (`data/`):**
-- `cut_guide_data.py` — `DATA`: list of 8-tuples `(fabric_code, fabric_name, sku, fabric_size, piece_num, template_code, quantity, page)` — 86 fabrics, 1,614 rows
+**Per-quilt data layer (`quilts/<quilt-id>/`):**
+- `cut_guide_data.py` — `DATA`: list of 8-tuples `(fabric_code, fabric_name, sku, fabric_size, piece_num, template_code, quantity, page)`
 - `assembly_data.py` — `BLOCKS`: dict mapping block ID → list of fragment IDs (64 blocks)
-- `assembly_guide.json` — visual assembly data generated by `extract.py`
-- `overview_data.json` — fabric list and pattern name from kit overview pages
-- `config.json` — `quilt_name` and `start_date`; authoritative over `overview_data.json` for pattern name
+- `assembly_guide.json` — visual assembly data (bboxes, circles, sewing steps) generated by `extract.py`
+- `overview_data.json` — fabric list and pattern name (gitignored; not needed by app at runtime)
+- `config.json` — `quilt_name` and `start_date`; authoritative source for quilt name
+- `quilt_overview.jpg` — background grid image shown behind the block grid
+- `assy/` — assembly guide images (one per multi-fragment block)
+
+**Staging files (`quilts/<quilt-id>/`, gitignored):**
+- `cut_raw.json`, `assy_raw.json`, `assy_visual_raw.json`, `overview_raw.json`
+- One entry per source image; status: ok / warning / error
+- Used by `extract.py --resume` and `--finalize`
+
+**Active quilts:**
+- `land-of-the-free` — Land of the Free (86 fabrics, 1,614 cut rows)
+- `skulliver` — Skulliver (106 fabrics, 912 cut rows)
 
 **Excel generators:**
-- `generate.py` → `LandOfTheFree_CutGuide.xlsx` (Cut Guide, By Fabric Code, Statistics sheets)
-- `tracking.py` → `LandOfTheFree_Tracker.xlsx` (6 sheets including block completion checklist)
+- `generate.py` → CutGuide xlsx (Cut Guide, By Fabric Code, Statistics sheets)
+- `tracking.py` → Tracker xlsx (6 sheets including block completion checklist)
 - `lint.py` — validates `cut_guide_data.py` for duplicate/missing pieces
 
 ## Deployment on Raspberry Pi
@@ -113,6 +157,8 @@ pm2 status               # check if running
 
 ## Configuration
 
-No config file needed for the web app. The data files in `data/` are the source of truth. `config.json` sets `quilt_name` and `start_date`.
+No config file needed for the web app. Each quilt's data lives in `quilts/<id>/` and is
+auto-discovered on startup. `config.json` in each quilt folder sets `quilt_name` and `start_date`.
 
-The three `progress.json` / `piece_progress.json` / `sewing_progress.json` files are gitignored — they live only on the Pi and persist quilt progress across sessions.
+Progress files (`progress/`, `piece_progress/`, `sewing_progress/` under `quilt-tracker-app/progress/<id>/`)
+are gitignored — they live only on the Pi and persist quilt progress across sessions.
