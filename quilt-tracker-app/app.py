@@ -410,7 +410,9 @@ def api_excel_download(filename):
     for quilt_id in get_quilt_ids():
         path = QUILTS_DIR / quilt_id / filename
         if path.exists():
-            return send_file(path, as_attachment=True)
+            resp = send_file(path, as_attachment=True)
+            resp.headers["Cache-Control"] = "no-store"
+            return resp
     return "", 404
 
 
