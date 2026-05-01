@@ -599,3 +599,29 @@ main {
 .swatch-not_started { background: transparent; border: 2px solid rgba(255,255,255,0.3); }
 .swatch-in_progress { background: rgba(122,79,0,0.35); border: 2px solid #ff9800; }
 .swatch-complete    { background: rgba(27,94,32,0.45); border: 2px solid #4caf50; }
+
+/* ── Multi-block sections (Segments tab) ── */
+.multi-block-section { margin-bottom: 16px; }
+.multi-block-header {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #e94560;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #0f3460;
+    padding: 4px 0;
+    margin-bottom: 6px;
+}
+
+/* Block ID tag in multi-select Fabrics tab */
+.pc-block {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #e94560;
+    min-width: 28px;
+    text-align: center;
+    background: rgba(233,69,96,0.12);
+    border-radius: 3px;
+    padding: 1px 4px;
+    margin-right: 4px;
+}

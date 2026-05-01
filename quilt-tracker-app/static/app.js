@@ -3,6 +3,7 @@
 let patternData = null;
 let selectedBlocks = new Set(); // multi-select; last clicked drives detail panel
 let selectedBlock  = null;      // last clicked block (drives detail panel)
+let currentBlocks  = {};        // map of block_id → {block, assy} for all selected
 let currentBlock = null;
 let currentAssy = null;
 let activeTab = null;      // 'cut', 'fabrics', or 'assemble'
@@ -28,6 +29,7 @@ function switchQuilt(quiltId) {
     patternData    = null;
     selectedBlocks = new Set();
     selectedBlock  = null;
+    currentBlocks  = {};
     currentBlock   = null;
     currentAssy   = null;
     activeTab     = null;
@@ -86,7 +88,7 @@ async function refreshPattern() {
         const el = document.getElementById("start-date");
         if (el) el.textContent = "Started " + formatDate(patternData.start_date);
     }
-    if (selectedBlock) await loadDetail(selectedBlock);
+    if (selectedBlock) await loadDetail();
     else renderOverview(patternData.stats);
 }
 
@@ -177,15 +179,16 @@ async function selectBlock(block_id, event) {
             if (selectedBlock === block_id) {
                 const remaining = [...selectedBlocks];
                 selectedBlock = remaining.length ? remaining[remaining.length - 1] : null;
-                if (selectedBlock) await loadDetail(selectedBlock);
+                if (selectedBlock) await loadDetail();
                 else { activeTab = null; activeFrag = null; renderOverview(patternData.stats); }
             }
         } else {
             selectedBlocks.add(block_id);
             selectedBlock = block_id;
+            activeFrag = null;
             const el = document.getElementById(`block-${block_id}`);
             if (el) el.classList.add("selected");
-            await loadDetail(block_id);
+            await loadDetail();
         }
     } else {
         // Plain click: if this is the only selected block, deselect; otherwise select only this one
@@ -205,19 +208,108 @@ async function selectBlock(block_id, event) {
             document.querySelectorAll(".block").forEach(el => el.classList.remove("selected"));
             const el = document.getElementById(`block-${block_id}`);
             if (el) el.classList.add("selected");
-            await loadDetail(block_id);
+            await loadDetail();
         }
     }
 }
 
-async function loadDetail(block_id) {
-    const [blockRes, assyRes] = await Promise.all([
-        fetch(`/api/block/${block_id}` + qp()),
-        fetch(`/api/assembly/${block_id}` + qp()),
-    ]);
-    currentBlock = await blockRes.json();
-    currentAssy = assyRes.ok ? await assyRes.json() : null;
-    renderDetail(currentBlock, currentAssy);
+async function loadDetail() {
+    const ids = [...selectedBlocks];
+    const results = await Promise.all(
+        ids.map(id => Promise.all([
+            fetch(`/api/block/${id}` + qp()).then(r => r.json()),
+            fetch(`/api/assembly/${id}` + qp()).then(r => r.ok ? r.json() : null),
+        ]))
+    );
+    currentBlocks = {};
+    for (let i = 0; i < ids.length; i++) {
+        currentBlocks[ids[i]] = { block: results[i][0], assy: results[i][1] };
+    }
+    currentBlock = selectedBlock ? (currentBlocks[selectedBlock]?.block ?? null) : null;
+    currentAssy  = selectedBlock ? (currentBlocks[selectedBlock]?.assy  ?? null) : null;
+
+    if (ids.length === 1) renderDetail(currentBlock, currentAssy);
+    else renderMultiDetail();
+}
+
+// ── Multi-block detail ────────────────────────────────────────────────────
+
+function renderMultiDetail() {
+    const panel = document.getElementById("detail-panel");
+    const ids = [...selectedBlocks].sort();
+    if (!activeTab || activeTab === "assemble") activeTab = "fabrics";
+
+    panel.innerHTML = `
+        <div class="block-header-row">
+            <h2>${ids.length} Blocks: ${ids.join(", ")}</h2>
+        </div>
+        <div class="detail-tabs">
+            <button class="tab-btn ${activeTab === "cut"     ? "active" : ""}" data-tab="cut"     onclick="switchTab('cut')">Segments</button>
+            <button class="tab-btn ${activeTab === "fabrics" ? "active" : ""}" data-tab="fabrics" onclick="switchTab('fabrics')">Fabrics</button>
+        </div>
+        <div id="tab-cut"     class="tab-content" style="display:${activeTab === "cut"     ? "block" : "none"}">${renderMultiCutTab()}</div>
+        <div id="tab-fabrics" class="tab-content" style="display:${activeTab === "fabrics" ? "block" : "none"}">${renderMultiFabricsTab()}</div>
+    `;
+}
+
+function renderMultiCutTab() {
+    return [...selectedBlocks].sort().map(id => {
+        const block = currentBlocks[id].block;
+        return `<div class="multi-block-section">
+            <div class="multi-block-header">${id}</div>
+            ${renderCutTab(block)}
+        </div>`;
+    }).join("");
+}
+
+function renderMultiFabricsTab() {
+    const byFabric = {};
+    for (const id of [...selectedBlocks].sort()) {
+        const block = currentBlocks[id].block;
+        for (const p of (block.pieces || [])) {
+            if (!byFabric[p.fabric_code]) byFabric[p.fabric_code] = { name: p.fabric_name, items: [] };
+            byFabric[p.fabric_code].items.push({ p, block });
+        }
+    }
+
+    if (!Object.keys(byFabric).length) return '<p class="tab-hint">No pieces for selected blocks.</p>';
+
+    const sections = Object.entries(byFabric).sort(([a], [b]) => a.localeCompare(b)).map(([code, fabric]) => {
+        const total = fabric.items.length;
+        const done = fabric.items.filter(({ p, block }) => {
+            const blockChecks = pieceChecks[block.id] || {};
+            const frag = block.fragments.find(f => matchesFrag(p.template, f.id));
+            return frag && (blockChecks[frag.id] || {})[`${p.fabric_code}_${p.piece_num}`];
+        }).length;
+
+        const rows = fabric.items.map(({ p, block }) => {
+            const blockChecks = pieceChecks[block.id] || {};
+            const frag = block.fragments.find(f => matchesFrag(p.template, f.id));
+            const fragId = frag ? frag.id : null;
+            const pieceKey = `${p.fabric_code}_${p.piece_num}`;
+            const checked = fragId && (blockChecks[fragId] || {})[pieceKey];
+            return `
+                <div class="piece-check-row">
+                    <input type="checkbox" ${checked ? "checked" : ""} ${fragId ? "" : "disabled"}
+                        onchange="checkPiece('${block.id}','${fragId}','${pieceKey}',this.checked)">
+                    <span class="pc-block">${block.id}</span>
+                    <span class="pc-tmpl">${p.template}</span>
+                    <span class="pc-num">(${p.piece_num})</span>
+                </div>`;
+        }).join("");
+
+        return `
+            <div class="fabric-group ${done === total ? "fabric-done" : ""}">
+                <div class="fabric-group-header">
+                    <span class="fabric-code">${code}</span>
+                    <span class="fabric-name">${fabric.name}</span>
+                    <span class="fabric-tally">${done}/${total}</span>
+                </div>
+                <div class="frag-piece-list">${rows}</div>
+            </div>`;
+    }).join("");
+
+    return `<div class="fabric-list">${sections}</div>`;
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────
@@ -274,9 +366,12 @@ function switchTab(tab) {
     document.querySelectorAll(".tab-btn").forEach(b =>
         b.classList.toggle("active", b.dataset.tab === tab)
     );
-    document.getElementById("tab-cut").style.display      = tab === "cut"      ? "block" : "none";
-    document.getElementById("tab-fabrics").style.display  = tab === "fabrics"  ? "block" : "none";
-    document.getElementById("tab-assemble").style.display = tab === "assemble" ? "block" : "none";
+    const tc = document.getElementById("tab-cut");
+    const tf = document.getElementById("tab-fabrics");
+    const ta = document.getElementById("tab-assemble");
+    if (tc) tc.style.display = tab === "cut"      ? "block" : "none";
+    if (tf) tf.style.display = tab === "fabrics"  ? "block" : "none";
+    if (ta) ta.style.display = tab === "assemble" ? "block" : "none";
 }
 
 // ── Overview panel ───────────────────────────────────────────────────────
@@ -443,7 +538,7 @@ function toggleFragDiagram(frag_id) {
 
 async function toggleFragCut(block_id, frag_id, checked) {
     await updateProgress(block_id, frag_id, "cut", checked);
-    await loadDetail(block_id);
+    await loadDetail();
 }
 
 async function checkPiece(block_id, frag_id, piece_num, checked) {
@@ -457,9 +552,14 @@ async function checkPiece(block_id, frag_id, piece_num, checked) {
         body: JSON.stringify({ block_id, frag_id, piece_num, checked }),
     });
 
-    document.getElementById("tab-cut").innerHTML     = renderCutTab(currentBlock);
-    document.getElementById("tab-fabrics").innerHTML  = renderFabricsTab(currentBlock);
-    refreshBlockSummary(currentBlock);
+    if (selectedBlocks.size > 1) {
+        document.getElementById("tab-cut").innerHTML     = renderMultiCutTab();
+        document.getElementById("tab-fabrics").innerHTML = renderMultiFabricsTab();
+    } else {
+        document.getElementById("tab-cut").innerHTML     = renderCutTab(currentBlock);
+        document.getElementById("tab-fabrics").innerHTML = renderFabricsTab(currentBlock);
+        refreshBlockSummary(currentBlock);
+    }
 }
 
 function refreshBlockSummary(block) {
@@ -566,7 +666,7 @@ async function checkSewingStep(block_id, step_index, checked) {
         for (const f of currentBlock.fragments) {
             await updateProgress(block_id, f.id, "assembled", true);
         }
-        await loadDetail(block_id);
+        await loadDetail();
     } else {
         document.getElementById("tab-assemble").innerHTML = renderAssembleTab(currentBlock, currentAssy);
     }
@@ -584,7 +684,7 @@ async function updateProgress(block_id, fragment_id, field, value) {
 
     if (patternData) patternData.stats = data.stats;
     const el = document.getElementById(`block-${block_id}`);
-    if (el) el.className = `block ${data.status}${selectedBlock === block_id ? " selected" : ""}`;
+    if (el) el.className = `block ${data.status}${selectedBlocks.has(block_id) ? " selected" : ""}`;
     renderStats(data.stats);
 
     const badge = document.querySelector(".block-status-badge");
@@ -602,13 +702,15 @@ async function resetProgress() {
     const res = await fetch("/api/progress/reset" + qp(), { method: "POST" });
     const data = await res.json();
     renderStats(data.stats);
-    selectedBlock = null;
-    currentBlock = null;
-    currentAssy = null;
-    activeTab = null;
-    activeFrag = null;
-    pieceChecks  = {};
-    sewingChecks = {};
+    selectedBlocks = new Set();
+    selectedBlock  = null;
+    currentBlocks  = {};
+    currentBlock   = null;
+    currentAssy    = null;
+    activeTab      = null;
+    activeFrag     = null;
+    pieceChecks    = {};
+    sewingChecks   = {};
     renderOverview(data.stats);
     await refreshPattern();
 }
