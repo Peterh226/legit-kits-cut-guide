@@ -51,9 +51,7 @@ async function init() {
         if (sel) sel.value = activeQuilt;
     }
 
-    if (!excelFiles.length) {
-        excelFiles = await fetch("/api/excel").then(r => r.json()).catch(() => []);
-    }
+    excelFiles = await fetch("/api/excel" + qp()).then(r => r.json()).catch(() => []);
 
     const [pp, sp] = await Promise.all([
         fetch("/api/piece_progress" + qp()).then(r => r.json()),

@@ -396,9 +396,10 @@ def api_set_piece_progress():
 
 @app.route("/api/excel")
 def api_excel_list():
-    files = []
-    for quilt_id in get_quilt_ids():
-        files.extend(sorted(p.name for p in (QUILTS_DIR / quilt_id).glob("*.xlsx")))
+    quilt_id = get_active_quilt()
+    if not quilt_id:
+        return jsonify([])
+    files = sorted(p.name for p in (QUILTS_DIR / quilt_id).glob("*.xlsx"))
     return jsonify(files)
 
 
