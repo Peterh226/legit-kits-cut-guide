@@ -135,8 +135,9 @@ def _default_quilt_id():
     return ids[0]
 
 
-def _output_name(quilt_name):
-    return "".join(w.capitalize() for w in quilt_name.split()) + "_Tracker.xlsx"
+def _output_name(quilt_id, quilt_name):
+    slug = "".join(w.capitalize() for w in quilt_name.split())
+    return str(Path(__file__).parent / "quilts" / quilt_id / f"{slug}_Tracker.xlsx")
 
 
 # ── Data index ────────────────────────────────────────────────────────────────
@@ -467,7 +468,7 @@ def build_final_assembly_sheet(wb, quilt_name, block_count):
 def generate(quilt_id, output_path=None):
     DATA, BLOCKS, quilt_name = _load_quilt(quilt_id)
     if output_path is None:
-        output_path = _output_name(quilt_name)
+        output_path = _output_name(quilt_id, quilt_name)
 
     fabric_info, by_fragment, block_stats = _build_index(DATA, BLOCKS)
     single_frag_count = sum(1 for bs in block_stats.values() if bs["frag_count"] == 1)

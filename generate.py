@@ -116,8 +116,9 @@ def _default_quilt_id():
     return ids[0]
 
 
-def _output_name(quilt_name):
-    return "".join(w.capitalize() for w in quilt_name.split()) + "_CutGuide.xlsx"
+def _output_name(quilt_id, quilt_name):
+    slug = "".join(w.capitalize() for w in quilt_name.split())
+    return str(Path(__file__).parent / "quilts" / quilt_id / f"{slug}_CutGuide.xlsx")
 
 
 # ---------------------------------------------------------------------------
@@ -369,7 +370,7 @@ def build_stats_sheet(wb, stats):
 def generate(quilt_id, output_path=None):
     DATA, quilt_name = _load_quilt(quilt_id)
     if output_path is None:
-        output_path = _output_name(quilt_name)
+        output_path = _output_name(quilt_id, quilt_name)
     stats = _compute_stats(DATA)
     wb = Workbook()
     build_cut_guide_sheet(wb, DATA)

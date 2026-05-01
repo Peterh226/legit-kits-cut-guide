@@ -396,8 +396,9 @@ def api_set_piece_progress():
 
 @app.route("/api/excel")
 def api_excel_list():
-    root = Path(__file__).parent.parent
-    files = sorted(p.name for p in root.glob("*.xlsx"))
+    files = []
+    for quilt_id in get_quilt_ids():
+        files.extend(sorted(p.name for p in (QUILTS_DIR / quilt_id).glob("*.xlsx")))
     return jsonify(files)
 
 
@@ -405,10 +406,11 @@ def api_excel_list():
 def api_excel_download(filename):
     if "/" in filename or "\\" in filename or not filename.endswith(".xlsx"):
         return "", 400
-    path = Path(__file__).parent.parent / filename
-    if not path.exists():
-        return "", 404
-    return send_file(path, as_attachment=True)
+    for quilt_id in get_quilt_ids():
+        path = QUILTS_DIR / quilt_id / filename
+        if path.exists():
+            return send_file(path, as_attachment=True)
+    return "", 404
 
 
 @app.route("/api/progress/reset", methods=["POST"])
@@ -434,11 +436,12 @@ def _generate_excel_files():
         config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
         quilt_name = config.get("quilt_name", quilt_id)
         slug = "".join(w.capitalize() for w in quilt_name.split())
-        if not (root / f"{slug}_CutGuide.xlsx").exists():
+        quilt_dir = QUILTS_DIR / quilt_id
+        if not (quilt_dir / f"{slug}_CutGuide.xlsx").exists():
             print(f"Generating {slug}_CutGuide.xlsx ...")
             subprocess.run([sys.executable, str(root / "generate.py"), "--quilt-id", quilt_id],
                            check=False, cwd=str(root))
-        if not (root / f"{slug}_Tracker.xlsx").exists():
+        if not (quilt_dir / f"{slug}_Tracker.xlsx").exists():
             print(f"Generating {slug}_Tracker.xlsx ...")
             subprocess.run([sys.executable, str(root / "tracking.py"), "--quilt-id", quilt_id],
                            check=False, cwd=str(root))
