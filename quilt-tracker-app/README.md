@@ -5,30 +5,30 @@ Flask web app for tracking quilt progress. Runs on the Raspberry Pi.
 ## Setup (Pi)
 
 ```bash
-cd ~/legit-kits-cut-guide/quilt-tracker-app
-python3 app.py
+pm2 start ~/legit-kits-cut-guide/quilt-tracker-app/app.py --name quilttracker --interpreter python3
+pm2 save
 ```
 
 Access at `http://<pi-ip>:3001` from any browser on the network.
 
-## Run on boot
+## Update workflow
 
-Add to crontab (`crontab -e`):
-
-```
-@reboot sleep 10 && cd /home/peterh226/legit-kits-cut-guide/quilt-tracker-app && python3 app.py >> /home/peterh226/quilt-tracker.log 2>&1
+```bash
+cd ~/legit-kits-cut-guide && git pull && pm2 restart quilttracker
 ```
 
-## Update pattern data
+Then shift-refresh in the browser for CSS/JS changes.
 
-On Windows, after running `extract.py`:
-```
-git add data/ && git commit -m "..." && git push
+## Add a new quilt
+
+On the development machine, after running `extract.py`:
+```bash
+git add quilts/<quilt-id>/ && git commit -m "Add <quilt-name> data" && git push
 ```
 
 On Pi:
-```
-cd ~/legit-kits-cut-guide && git pull
+```bash
+cd ~/legit-kits-cut-guide && git pull && pm2 restart quilttracker
 ```
 
-The app picks up the new data on next restart.
+The app auto-discovers the new quilt from the `quilts/` folder on startup.
