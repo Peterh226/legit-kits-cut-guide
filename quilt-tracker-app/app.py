@@ -438,14 +438,12 @@ def _generate_excel_files():
         quilt_name = config.get("quilt_name", quilt_id)
         slug = "".join(w.capitalize() for w in quilt_name.split())
         quilt_dir = QUILTS_DIR / quilt_id
-        if not (quilt_dir / f"{slug}_CutGuide.xlsx").exists():
-            print(f"Generating {slug}_CutGuide.xlsx ...")
-            subprocess.run([sys.executable, str(root / "generate.py"), "--quilt-id", quilt_id],
-                           check=False, cwd=str(root))
-        if not (quilt_dir / f"{slug}_Tracker.xlsx").exists():
-            print(f"Generating {slug}_Tracker.xlsx ...")
-            subprocess.run([sys.executable, str(root / "tracking.py"), "--quilt-id", quilt_id],
-                           check=False, cwd=str(root))
+        print(f"Generating {slug}_CutGuide.xlsx ...")
+        subprocess.run([sys.executable, str(root / "generate.py"), "--quilt-id", quilt_id],
+                       check=False, cwd=str(root))
+        print(f"Generating {slug}_Tracker.xlsx ...")
+        subprocess.run([sys.executable, str(root / "tracking.py"), "--quilt-id", quilt_id],
+                       check=False, cwd=str(root))
 
 
 def _git_version():
