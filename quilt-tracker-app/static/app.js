@@ -1,7 +1,8 @@
 /* Quilt Tracker — client-side logic */
 
 let patternData = null;
-let selectedBlock = null;
+let selectedBlocks = new Set(); // multi-select; last clicked drives detail panel
+let selectedBlock  = null;      // last clicked block (drives detail panel)
 let currentBlock = null;
 let currentAssy = null;
 let activeTab = null;      // 'cut', 'fabrics', or 'assemble'
@@ -24,9 +25,10 @@ function switchQuilt(quiltId) {
     const sel = document.getElementById("quilt-selector");
     if (sel) sel.value = quiltId;
     // Reset client state
-    patternData  = null;
-    selectedBlock = null;
-    currentBlock  = null;
+    patternData    = null;
+    selectedBlocks = new Set();
+    selectedBlock  = null;
+    currentBlock   = null;
     currentAssy   = null;
     activeTab     = null;
     activeFrag    = null;
@@ -146,8 +148,8 @@ function renderGrid(grid) {
                 <span class="block-id">${block_id}</span>
                 <span class="block-info">${block ? block.fragments.length + "s " + block.piece_count + "p" : ""}</span>
             `;
-            el.addEventListener("click", () => selectBlock(block_id));
-            if (selectedBlock === block_id) el.classList.add("selected");
+            el.addEventListener("click", (e) => selectBlock(block_id, e));
+            if (selectedBlocks.has(block_id)) el.classList.add("selected");
             rowEl.appendChild(el);
         }
         gridArea.appendChild(rowEl);
@@ -162,22 +164,50 @@ function renderGrid(grid) {
 
 // ── Block selection ───────────────────────────────────────────────────────
 
-async function selectBlock(block_id) {
-    if (selectedBlock === block_id) {
-        selectedBlock = null;
-        activeTab = null;
-        activeFrag = null;
-        document.querySelectorAll(".block").forEach(el => el.classList.remove("selected"));
-        renderOverview(patternData.stats);
-        return;
+async function selectBlock(block_id, event) {
+    const multi = event && (event.ctrlKey || event.metaKey || event.shiftKey);
+
+    if (multi) {
+        // Ctrl/Cmd/Shift+click: toggle this block in the selection
+        if (selectedBlocks.has(block_id)) {
+            selectedBlocks.delete(block_id);
+            const el = document.getElementById(`block-${block_id}`);
+            if (el) el.classList.remove("selected");
+            // If we deselected the active detail block, show the last remaining or overview
+            if (selectedBlock === block_id) {
+                const remaining = [...selectedBlocks];
+                selectedBlock = remaining.length ? remaining[remaining.length - 1] : null;
+                if (selectedBlock) await loadDetail(selectedBlock);
+                else { activeTab = null; activeFrag = null; renderOverview(patternData.stats); }
+            }
+        } else {
+            selectedBlocks.add(block_id);
+            selectedBlock = block_id;
+            const el = document.getElementById(`block-${block_id}`);
+            if (el) el.classList.add("selected");
+            await loadDetail(block_id);
+        }
+    } else {
+        // Plain click: if this is the only selected block, deselect; otherwise select only this one
+        if (selectedBlocks.size === 1 && selectedBlocks.has(block_id)) {
+            selectedBlocks.clear();
+            selectedBlock = null;
+            activeTab = null;
+            activeFrag = null;
+            document.querySelectorAll(".block").forEach(el => el.classList.remove("selected"));
+            renderOverview(patternData.stats);
+        } else {
+            selectedBlocks.clear();
+            selectedBlocks.add(block_id);
+            selectedBlock = block_id;
+            activeTab = null;
+            activeFrag = null;
+            document.querySelectorAll(".block").forEach(el => el.classList.remove("selected"));
+            const el = document.getElementById(`block-${block_id}`);
+            if (el) el.classList.add("selected");
+            await loadDetail(block_id);
+        }
     }
-    selectedBlock = block_id;
-    activeTab = null;
-    activeFrag = null;
-    document.querySelectorAll(".block").forEach(el => el.classList.remove("selected"));
-    const el = document.getElementById(`block-${block_id}`);
-    if (el) el.classList.add("selected");
-    await loadDetail(block_id);
 }
 
 async function loadDetail(block_id) {

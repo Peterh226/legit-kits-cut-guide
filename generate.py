@@ -179,9 +179,9 @@ def build_cut_guide_sheet(wb, DATA):
         ("Fabric Name",   16),
         ("SKU",           10),
         ("Fabric Size",   22),
-        ("Piece #",       10),
-        ("Template Code", 16),
-        ("Quantity",      10),
+        ("Cut #",         10),
+        ("Segment ID",    16),
+        ("Sew Sequence",  12),
         ("Page",          10),
     ]
     for col, (label, width) in enumerate(headers, 1):
@@ -215,7 +215,7 @@ def build_summary_sheet(wb, stats):
         ("SKU",          10),
         ("Fabric Size",  22),
         ("Page",         10),
-        ("Piece Rows",   12),
+        ("Piece Count",  12),
         ("Total Cuts",   12),
     ]
     for col, (label, width) in enumerate(headers, 1):
