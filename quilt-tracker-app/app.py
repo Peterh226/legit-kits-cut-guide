@@ -238,7 +238,7 @@ def quilt_assy_image(quilt_id, filename):
 def index():
     quilts = [get_quilt_info(qid) for qid in get_quilt_ids()]
     first_name = quilts[0]["name"] if quilts else "Quilt Tracker"
-    return render_template("index.html", pattern_name=first_name, quilts=quilts)
+    return render_template("index.html", pattern_name=first_name, quilts=quilts, version=GIT_VERSION)
 
 
 @app.route("/api/pattern")
@@ -444,13 +444,27 @@ def _generate_excel_files():
                            check=False, cwd=str(root))
 
 
+def _git_version():
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(Path(__file__).parent.parent),
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except Exception:
+        return "unknown"
+
+
+GIT_VERSION = _git_version()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=3001)
     parser.add_argument("--host", default="0.0.0.0")
     args = parser.parse_args()
     quilts = get_quilt_ids()
-    print(f"Quilt Tracker: http://{args.host}:{args.port}")
+    print(f"Quilt Tracker: http://{args.host}:{args.port}  [{GIT_VERSION}]")
     print(f"Quilts found: {', '.join(quilts) if quilts else 'none'}")
     _generate_excel_files()
     app.run(host=args.host, port=args.port, debug=False)

@@ -581,6 +581,15 @@ main {
     gap: 6px;
 }
 
+.version-stamp {
+    position: fixed;
+    bottom: 6px;
+    right: 10px;
+    font-size: 0.65rem;
+    color: #333;
+    pointer-events: none;
+}
+
 .legend-swatch {
     width: 14px;
     height: 14px;
