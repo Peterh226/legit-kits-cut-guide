@@ -244,13 +244,15 @@ def resolve_fabric_codes(rows: list[dict], lookup: dict[str, str]) -> tuple[list
 # Validation
 # ---------------------------------------------------------------------------
 
-def validate_cut_rows(rows: list, img_name: str) -> list[str]:
+def validate_cut_rows(rows: list, img_name: str, fabric_lookup: dict | None = None) -> list[str]:
     if not isinstance(rows, list):
         return ["Response is not a list"]
     warnings = []
     if len(rows) == 0:
         warnings.append("No rows extracted")
         return warnings
+
+    # Per-row field checks
     for i, row in enumerate(rows):
         if not isinstance(row, dict):
             warnings.append(f"Row {i}: not a dict")
@@ -262,6 +264,55 @@ def validate_cut_rows(rows: list, img_name: str) -> list[str]:
         code = (row.get("fabric_code") or "").strip()
         if code and not re.match(r"^[A-Z]{1,2}$", code):
             warnings.append(f"Row {i}: suspect fabric_code {code!r}")
+        # Check 4: fabric code exists in overview data
+        if fabric_lookup and code and code not in fabric_lookup.values():
+            warnings.append(f"Row {i}: fabric_code {code!r} not in overview data")
+
+    valid_rows = [r for r in rows if isinstance(r, dict)]
+
+    # Check 1: declared piece count matches extracted count per fabric
+    from collections import defaultdict as _dd
+    by_fabric: dict = _dd(list)
+    for row in valid_rows:
+        code = (row.get("fabric_code") or "").strip()
+        if code:
+            by_fabric[code].append(row)
+    for code, fabric_rows in by_fabric.items():
+        declared = next((r.get("fabric_piece_count") for r in fabric_rows
+                         if r.get("fabric_piece_count") is not None), None)
+        if declared is not None and int(declared) != len(fabric_rows):
+            warnings.append(
+                f"Fabric {code}: declared {int(declared)} pieces but extracted {len(fabric_rows)}"
+            )
+
+    # Check 2: duplicate piece_num within same fabric
+    for code, fabric_rows in by_fabric.items():
+        seen: set = set()
+        for row in fabric_rows:
+            pn = row.get("piece_num")
+            if pn is not None:
+                if pn in seen:
+                    warnings.append(f"Fabric {code}: duplicate piece_num {pn}")
+                seen.add(pn)
+
+    # Check 3: duplicate or non-contiguous sew_sequence within same template_code
+    by_tmpl: dict = _dd(list)
+    for row in valid_rows:
+        tmpl = (row.get("template_code") or "").strip()
+        if tmpl:
+            by_tmpl[tmpl].append(row)
+    for tmpl, tmpl_rows in by_tmpl.items():
+        seqs = [r.get("quantity") for r in tmpl_rows if r.get("quantity") is not None]
+        seq_set = set(seqs)
+        if len(seqs) != len(seq_set):
+            dups = [s for s in seq_set if seqs.count(s) > 1]
+            warnings.append(f"Template {tmpl}: duplicate sew_sequence(s) {dups}")
+        if seqs:
+            expected = set(range(1, len(seqs) + 1))
+            missing = sorted(expected - seq_set)
+            if missing:
+                warnings.append(f"Template {tmpl}: sew_sequence gap(s) — missing {missing}")
+
     return warnings
 
 
@@ -392,8 +443,11 @@ A fabric section has:
   - Piece number (integer, from circled numbers)
   - Template code (e.g. F3m, A4a, B7c — row letter + column number + optional segment letter)
   - Quantity (the number in parentheses after the template code; if absent use 1)
+- fabric_piece_count: the TOTAL number of pieces listed for this fabric on this page
+  (count every circled number visible in the piece list, including any printed below the image)
 
-IMPORTANT: The piece list is split across two areas of the page — read ALL of them.
+IMPORTANT: The piece list is split across two areas of the page — read ALL of them,
+including any entries printed BELOW the diagram image.
 The page number is printed at the bottom of the cut guide page.
 
 Return ONLY a JSON array. Each element represents one piece row:
@@ -406,10 +460,12 @@ Return ONLY a JSON array. Each element represents one piece row:
     "piece_num": 1,
     "template_code": "F3m",
     "quantity": 3,
-    "page": 1
+    "page": 1,
+    "fabric_piece_count": 6
   }}
 ]
 
+fabric_piece_count must be the same value for every row belonging to the same fabric.
 If a field is not visible, use null. Do not include any text outside the JSON array.
 """
 
@@ -591,7 +647,7 @@ def run_cut(
                 print("ERROR: JSON parse failed")
             else:
                 rows, fixed = resolve_fabric_codes(rows, fabric_lookup)
-                warnings = validate_cut_rows(rows, img.name)
+                warnings = validate_cut_rows(rows, img.name, fabric_lookup)
                 staging[img.name] = {"status": "warning" if warnings else "ok", "data": rows, "rows": len(rows), "warnings": warnings, "ts": _ts()}
                 suffix = f", {fixed} codes resolved" if fixed else ""
                 if warnings:
