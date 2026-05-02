@@ -641,12 +641,12 @@ function renderAssyDiagram(assy, block) {
 
     return `
         <div class="assy-diagram">
-            ${diagramHtml}
             <div class="sewing-checklist">
                 <h3>Sewing Steps</h3>
                 ${stepRows}
             </div>
             ${progress}
+            ${diagramHtml}
         </div>`;
 }
 
