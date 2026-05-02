@@ -452,6 +452,11 @@ IMPORTANT: The piece list is split across two areas of the page — read ALL of 
 including any entries printed BELOW the diagram image.
 The page number is printed at the bottom of the cut guide page.
 
+IMPORTANT: Template codes like C210 or C211 use a mixed font size where the block ID
+(e.g. "C2") appears slightly larger than the trailing digits ("10", "11"). Do NOT insert
+any separator character (apostrophe, underscore, period, etc.) between them — the template
+code is simply "C210" or "C211" with no separator.
+
 Return ONLY a JSON array. Each element represents one piece row:
 [
   {{
@@ -834,7 +839,8 @@ def main() -> None:
                 target_pages = _target_page_numbers(args.page, args.pages)
                 existing = _load_existing_cut_rows(out_path)
                 kept = [r for r in existing if int(r.get("page") or 0) not in target_pages]
-                rows = sorted(kept + rows, key=lambda r: (int(r.get("page") or 0), int(r.get("piece_num") or 0)))
+                new_rows = [r for r in rows if int(r.get("page") or 0) in target_pages]
+                rows = sorted(kept + new_rows, key=lambda r: (int(r.get("page") or 0), int(r.get("piece_num") or 0)))
             write_cut_guide_data(rows, out_path)
 
     if not args.dry_run and not args.page and not args.pages and args.stage == "all":
