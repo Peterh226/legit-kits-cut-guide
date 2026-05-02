@@ -12,7 +12,7 @@ BLOCKS = {
     'A2': ['A2a', 'A2b', 'A2c', 'A2d', 'A2e', 'A2f', 'A2g', 'A2h', 'A2i', 'A2j', 'A2k', 'A2L', 'A2m', 'A2n'],
     'A3': ['A3a', 'A3b'],
     'A4': ['A4a', 'A4b', 'A4c', 'A4d', 'A4e', 'A4f', 'A4g', 'A4h', 'A4i', 'A4j', 'A4k'],
-    'B1': ['B1a', 'B1b', 'B1c', 'B1d', 'B1e', 'B1f', 'B1g', 'B1h', 'B1i', 'B1j', 'B1k', 'B1L', 'B1m', 'B1n', 'B1o', 'B1p', 'B1q', 'B1r', 'B1s', 'B1t', 'B1u', 'B1v', 'B1w', 'B1x', 'B1y'],
+    'B1': ['B1a', 'B1b', 'B1c', 'B1d', 'B1e', 'B1f', 'B1g', 'B1h', 'B1i', 'B1j', 'B1k', 'B1L', 'B1m', 'B1n', 'B1o', 'B1p', 'B1q', 'B1r', 'B1s', 'B1t', 'B1u', 'B1v', 'B1w', 'B1x', 'B1y', 'B1z', 'B11', 'B12'],
     'B2': ['B2a', 'B2b', 'B2c', 'B2d', 'B2e', 'B2f', 'B2g', 'B2h', 'B2i', 'B2j', 'B2k', 'B2L', 'B2m', 'B2n', 'B2o', 'B2p', 'B2q', 'B2r', 'B2s', 'B2t', 'B2u', 'B2v', 'B2w'],
     'B3': ['B3a', 'B3b', 'B3c', 'B3d', 'B3e', 'B3f', 'B3g', 'B3h', 'B3i', 'B3j', 'B3k', 'B3L', 'B3m'],
     'B4': ['B4a', 'B4b', 'B4c', 'B4d', 'B4e', 'B4f', 'B4g', 'B4h', 'B4i', 'B4j', 'B4k'],
