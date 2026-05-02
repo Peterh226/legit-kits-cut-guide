@@ -177,6 +177,32 @@ def _should_skip(staging: dict, img_name: str, resume: bool) -> bool:
     return resume and staging.get(img_name, {}).get("status") in ("ok", "warning")
 
 
+def _target_page_numbers(page: int | None, pages: str | None) -> set[int]:
+    if page is not None:
+        return {page}
+    if pages is not None:
+        m = re.match(r"^(\d+)-(\d+)$", pages)
+        if m:
+            return set(range(int(m.group(1)), int(m.group(2)) + 1))
+    return set()
+
+
+def _load_existing_cut_rows(out_path: Path) -> list[dict]:
+    """Import existing cut_guide_data.py and return its DATA as a list of dicts."""
+    if not out_path.exists():
+        return []
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("_cut_guide_data_existing", out_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        keys = ["fabric_code", "fabric_name", "sku", "fabric_size",
+                "piece_num", "template_code", "quantity", "page"]
+        return [dict(zip(keys, row)) for row in mod.DATA]
+    except Exception:
+        return []
+
+
 # ---------------------------------------------------------------------------
 # Fabric lookup
 # ---------------------------------------------------------------------------
@@ -731,7 +757,13 @@ def main() -> None:
         rows = run_cut(client, cut_folder, cut_staging_path, fabric_lookup,
                        args.resume, args.page, args.pages, args.dry_run)
         if rows and not args.dry_run:
-            write_cut_guide_data(rows, out_dir / "cut_guide_data.py")
+            out_path = out_dir / "cut_guide_data.py"
+            if args.page or args.pages:
+                target_pages = _target_page_numbers(args.page, args.pages)
+                existing = _load_existing_cut_rows(out_path)
+                kept = [r for r in existing if int(r.get("page") or 0) not in target_pages]
+                rows = sorted(kept + rows, key=lambda r: (int(r.get("page") or 0), int(r.get("piece_num") or 0)))
+            write_cut_guide_data(rows, out_path)
 
     if not args.dry_run and not args.page and not args.pages and args.stage == "all":
         print("\n=== Running generate.py ===")
