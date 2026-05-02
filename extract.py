@@ -315,19 +315,22 @@ def validate_cut_rows(rows: list, img_name: str, fabric_lookup: dict | None = No
     return warnings
 
 
-def validate_assy_entries(entries: list, img_name: str) -> list[str]:
+def validate_assy_entries(entries: list, img_name: str, grid_rows: str = "ABCDEFGH", grid_cols: int = 8) -> list[str]:
     if not isinstance(entries, list):
         return ["Response is not a list"]
     warnings = []
     if len(entries) == 0:
         warnings.append("No blocks extracted")
         return warnings
+    row_pat = "[" + grid_rows[0] + "-" + grid_rows[-1] + "]"
+    col_pat = f"[1-{grid_cols}]" if grid_cols <= 9 else f"([1-9]|[1-{grid_cols // 10}][0-9])"
+    block_re = re.compile(rf"^{row_pat}{col_pat}$")
     for e in entries:
         if not isinstance(e, dict):
             warnings.append(f"Entry is not a dict: {e!r}")
             continue
         bid = e.get("block_id", "")
-        if not re.match(r"^[A-H][1-8]$", bid):
+        if not block_re.match(bid):
             warnings.append(f"Suspect block_id: {bid!r}")
         if not e.get("fragments"):
             warnings.append(f"Block {bid}: no fragments")
@@ -523,6 +526,8 @@ def run_assy(
     page: int | None,
     pages: str | None,
     dry_run: bool,
+    grid_rows: str = "ABCDEFGH",
+    grid_cols: int = 8,
 ) -> tuple[dict[str, list[str]], dict]:
     images = sorted_images(folder, "assy")
     staging        = load_staging(staging_path)
@@ -540,7 +545,7 @@ def run_assy(
                     staging[img.name] = {"status": "error", "error": "JSON parse failed", "raw": raw[:1000], "ts": _ts()}
                     print("ERROR: JSON parse failed")
                 else:
-                    warnings = validate_assy_entries(entries, img.name)
+                    warnings = validate_assy_entries(entries, img.name, grid_rows, grid_cols)
                     staging[img.name] = {"status": "warning" if warnings else "ok", "data": entries, "warnings": warnings, "ts": _ts()}
                     print(f"{len(entries)} blocks" if not warnings else f"WARNING: {'; '.join(warnings)}")
             except Exception as e:
@@ -568,16 +573,16 @@ def run_assy(
             if not dry_run:
                 save_staging(visual_staging_path, visual_staging)
 
-    return _assemble_blocks(staging), _assemble_guide(visual_staging)
+    return _assemble_blocks(staging, grid_rows, grid_cols), _assemble_guide(visual_staging)
 
 
-def _assemble_blocks(staging: dict) -> dict[str, list[str]]:
+def _assemble_blocks(staging: dict, grid_rows: str = "ABCDEFGH", grid_cols: int = 8) -> dict[str, list[str]]:
     blocks: dict[str, list[str]] = {}
     for v in staging.values():
         if v.get("status") in ("ok", "warning") and "data" in v:
             for entry in v["data"]:
                 blocks[entry["block_id"]] = entry["fragments"]
-    all_block_ids = [f"{r}{c}" for r in "ABCDEFGH" for c in "12345678"]
+    all_block_ids = [f"{r}{c}" for r in grid_rows for c in [str(n) for n in range(1, grid_cols + 1)]]
     complete = {}
     added = 0
     for bid in all_block_ids:
@@ -749,6 +754,11 @@ def main() -> None:
     out_dir  = Path(__file__).parent / "quilts" / quilt_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    config_path = out_dir / "config.json"
+    quilt_config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    grid_rows = quilt_config.get("grid_rows", "ABCDEFGH")
+    grid_cols = int(quilt_config.get("grid_cols", 8))
+
     cut_folder      = pattern_folder / "cut"
     assy_folder     = pattern_folder / "assy"
     overview_folder = pattern_folder / "overview"
@@ -771,7 +781,8 @@ def main() -> None:
 
     # --- Finalize ---
     if args.finalize:
-        _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis_path, overview_staging_path)
+        _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis_path, overview_staging_path,
+                  grid_rows=grid_rows, grid_cols=grid_cols)
         return
 
     # --- Processing ---
@@ -790,6 +801,10 @@ def main() -> None:
             (out_dir / "overview_data.json").write_text(json.dumps(overview_data, indent=2), encoding="utf-8")
             print(f"Wrote overview_data.json")
             _copy_overview_image(overview_folder, out_dir)
+            detected = _detect_grid_from_overview(overview_data)
+            if detected:
+                grid_rows, grid_cols = detected
+                _update_config_grid(out_dir, grid_rows, grid_cols)
         fabric_lookup = build_fabric_lookup(overview_data)
         print(f"Fabric lookup: {len(fabric_lookup)} fabrics")
 
@@ -801,7 +816,8 @@ def main() -> None:
     if args.stage in ("assy", "all") and assy_folder.is_dir():
         print("\n=== Assembly ===")
         blocks, guide = run_assy(client, assy_folder, assy_staging_path, assy_vis_path,
-                                 args.resume, args.page, args.pages, args.dry_run)
+                                 args.resume, args.page, args.pages, args.dry_run,
+                                 grid_rows=grid_rows, grid_cols=grid_cols)
         if not args.dry_run:
             write_assembly_data(blocks, out_dir / "assembly_data.py")
             (out_dir / "assembly_guide.json").write_text(json.dumps(guide, indent=2), encoding="utf-8")
@@ -830,7 +846,36 @@ def main() -> None:
     print("\nDone.")
 
 
-def _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis_path, overview_staging_path):
+def _detect_grid_from_overview(overview_data: list[dict]) -> tuple[str, int] | None:
+    """Return (grid_rows_str, grid_cols_int) if a pattern-side grid is found in overview data."""
+    for page in overview_data:
+        if not isinstance(page, dict):
+            continue
+        grid = page.get("grid")
+        if not grid:
+            continue
+        rows = grid.get("rows", [])
+        cols = grid.get("columns", [])
+        if rows and cols:
+            row_str = "".join(str(r) for r in rows if len(str(r)) == 1 and str(r).isalpha())
+            if row_str and len(cols) > 0:
+                return row_str.upper(), len(cols)
+    return None
+
+
+def _update_config_grid(out_dir: Path, grid_rows: str, grid_cols: int) -> None:
+    config_path = out_dir / "config.json"
+    config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    if config.get("grid_rows") == grid_rows and config.get("grid_cols") == grid_cols:
+        return
+    config["grid_rows"] = grid_rows
+    config["grid_cols"] = grid_cols
+    config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+    print(f"  [grid] Detected {len(grid_rows)}×{grid_cols} grid ({grid_rows} × 1-{grid_cols}) — saved to config.json")
+
+
+def _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis_path, overview_staging_path,
+              grid_rows: str = "ABCDEFGH", grid_cols: int = 8):
     overview_staging_path_obj = Path(overview_staging_path)
     if overview_staging_path_obj.exists():
         staging = load_staging(overview_staging_path_obj)
@@ -840,7 +885,7 @@ def _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis
             print(f"Finalized overview_data.json ({len(data)} pages)")
 
     if Path(assy_staging_path).exists():
-        blocks = _assemble_blocks(load_staging(assy_staging_path))
+        blocks = _assemble_blocks(load_staging(assy_staging_path), grid_rows, grid_cols)
         guide  = _assemble_guide(load_staging(assy_vis_path))
         write_assembly_data(blocks, out_dir / "assembly_data.py")
         (out_dir / "assembly_guide.json").write_text(json.dumps(guide, indent=2), encoding="utf-8")

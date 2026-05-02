@@ -110,14 +110,15 @@ function renderStats(stats) {
 // ── Quilt grid ────────────────────────────────────────────────────────────
 
 function renderGrid(grid) {
-    const rows = "ABCDEFGH";
+    const rows = patternData.grid_rows || "ABCDEFGH";
+    const numCols = patternData.grid_cols || 8;
     const container = document.getElementById("quilt-grid");
     container.innerHTML = "";
 
     const labelRow = document.createElement("div");
     labelRow.className = "quilt-labels";
     labelRow.innerHTML = "<span></span>" +
-        [1,2,3,4,5,6,7,8].map(c => `<span>${c}</span>`).join("");
+        Array.from({length: numCols}, (_, i) => i + 1).map(c => `<span>${c}</span>`).join("");
     container.appendChild(labelRow);
 
     const byId = Object.fromEntries(grid.map(b => [b.id, b]));
@@ -140,7 +141,7 @@ function renderGrid(grid) {
         const rowEl = document.createElement("div");
         rowEl.className = "quilt-block-row";
 
-        for (let col = 1; col <= 8; col++) {
+        for (let col = 1; col <= numCols; col++) {
             const block_id = `${rowLetter}${col}`;
             const block = byId[block_id];
             const el = document.createElement("div");
