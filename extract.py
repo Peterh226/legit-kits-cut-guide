@@ -96,7 +96,6 @@ def call_claude(client: anthropic.Anthropic, image_path: Path, prompt: str) -> s
     msg = client.messages.create(
         model="claude-opus-4-7",
         max_tokens=16000,
-        temperature=0,
         messages=[{
             "role": "user",
             "content": [
