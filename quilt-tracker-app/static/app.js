@@ -294,7 +294,7 @@ function renderMultiFabricsTab() {
                         onchange="checkPiece('${block.id}','${fragId}','${pieceKey}',this.checked)">
                     <span class="pc-block">${block.id}</span>
                     <span class="pc-tmpl">${p.template}</span>
-                    <span class="pc-num">(${p.piece_num})</span>
+                    <span class="pc-num">(${p.quantity})</span>
                 </div>`;
         }).join("");
 
@@ -487,7 +487,7 @@ function renderFabricsTab(block) {
                     <input type="checkbox" ${checked ? "checked" : ""} ${fragId ? "" : "disabled"}
                         onchange="checkPiece('${block.id}','${fragId}','${pieceKey}',this.checked)">
                     <span class="pc-tmpl">${p.template}</span>
-                    <span class="pc-num">(${p.piece_num})</span>
+                    <span class="pc-num">(${p.quantity})</span>
                     <span class="pc-fabric">${code}</span>
                 </div>`;
         }).join("");
@@ -509,7 +509,7 @@ function renderFabricsTab(block) {
 function renderFragPieces(frag_id) {
     const fragPieces = (currentBlock.pieces || [])
         .filter(p => matchesFrag(p.template, frag_id))
-        .sort((a, b) => a.piece_num - b.piece_num);
+        .sort((a, b) => a.quantity - b.quantity);
     if (!fragPieces.length) return "";
 
     const blockChecks = pieceChecks[currentBlock.id] || {};
@@ -523,7 +523,7 @@ function renderFragPieces(frag_id) {
                 <input type="checkbox" ${checked ? "checked" : ""}
                     onchange="checkPiece('${currentBlock.id}','${frag_id}','${pieceKey}',this.checked)">
                 <span class="pc-tmpl">${p.template}</span>
-                <span class="pc-num">(${i + 1})</span>
+                <span class="pc-num">(${p.quantity})</span>
                 <span class="pc-fabric">${p.fabric_code}</span>
             </div>`;
     }).join("");
