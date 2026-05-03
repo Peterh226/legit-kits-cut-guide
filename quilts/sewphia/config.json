@@ -2,5 +2,6 @@
   "quilt_name": "Sewphia",
   "grid_rows": "ABCD",
   "grid_cols": 4,
-  "grid_layout": "col_letters"
+  "grid_layout": "col_letters",
+  "block_orientation": "landscape"
 }

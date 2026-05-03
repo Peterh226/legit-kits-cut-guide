@@ -109,8 +109,6 @@ main {
 .quilt-grid-area {
     position: relative;
     width: 376px;
-    background-size: cover;
-    background-position: center top;
     border-radius: 4px;
     overflow: hidden;
 }
@@ -122,6 +120,33 @@ main {
     background: rgba(15, 15, 35, 0.45);
     z-index: 0;
 }
+
+.grid-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center top;
+    z-index: -1;
+}
+.grid-bg.flipped { transform: scaleX(-1); }
+
+.grid-view-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+.view-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #666;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.view-btn:hover  { color: #ccc; border-color: #666; }
+.view-btn.active { color: #e94560; border-color: #e94560; background: rgba(233,69,96,0.1); }
 
 .quilt-block-row {
     display: grid;

@@ -12,6 +12,7 @@ let pieceChecks  = {};     // {block_id: {frag_id: {piece_num_str: bool}}}
 let sewingChecks = {};     // {block_id: {step_index_str: bool}}
 let activeQuilt  = null;   // current quilt id
 let excelFiles   = [];     // cached list of xlsx files
+let gridView     = "finished"; // "finished" | "pattern"
 
 // ── Quilt helpers ─────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ function switchQuilt(quiltId) {
     activeFrag    = null;
     pieceChecks   = {};
     sewingChecks  = {};
+    gridView      = "finished";
     init();
 }
 
@@ -110,20 +112,36 @@ function renderStats(stats) {
 // ── Quilt grid ────────────────────────────────────────────────────────────
 
 function renderGrid(grid) {
-    const rows    = patternData.grid_rows || "ABCDEFGH";
-    const numCols = patternData.grid_cols || 8;
+    const rows        = patternData.grid_rows || "ABCDEFGH";
+    const numCols     = patternData.grid_cols || 8;
+    const isLandscape = patternData.block_orientation === "landscape";
+    const blockW      = isLandscape ? 60 : 45;
+    const blockH      = isLandscape ? 45 : 60;
+    const cellW       = blockW + 2;
+    const cellH       = blockH + 2;
+
     const container = document.getElementById("quilt-grid");
     container.innerHTML = "";
     const byId = Object.fromEntries(grid.map(b => [b.id, b]));
 
-    const colTemplate = `28px repeat(${numCols}, 47px)`;
-    const gridWidth   = `${numCols * 47}px`;
+    // Finished view: columns n→1 left to right (image not flipped)
+    // Pattern view:  columns 1→n left to right (image flipped horizontally)
+    const isPattern  = gridView === "pattern";
+    const colNums    = Array.from({length: numCols}, (_, i) => isPattern ? i + 1 : numCols - i);
+    const colTemplate = `28px repeat(${numCols}, ${cellW}px)`;
+    const gridWidth   = `${numCols * cellW}px`;
+
+    const toggleDiv = document.createElement("div");
+    toggleDiv.className = "grid-view-toggle";
+    toggleDiv.innerHTML =
+        `<button class="view-btn${!isPattern ? " active" : ""}" onclick="setGridView('finished')">Finished</button>` +
+        `<button class="view-btn${isPattern  ? " active" : ""}" onclick="setGridView('pattern')">Pattern Side</button>`;
+    container.appendChild(toggleDiv);
 
     const labelRow = document.createElement("div");
     labelRow.className = "quilt-labels";
     labelRow.style.gridTemplateColumns = colTemplate;
-    labelRow.innerHTML = "<span></span>" +
-        Array.from({length: numCols}, (_, i) => i + 1).map(c => `<span>${c}</span>`).join("");
+    labelRow.innerHTML = "<span></span>" + colNums.map(c => `<span>${c}</span>`).join("");
     container.appendChild(labelRow);
 
     const body = document.createElement("div");
@@ -136,22 +154,30 @@ function renderGrid(grid) {
     gridArea.className = "quilt-grid-area";
     gridArea.style.width = gridWidth;
 
+    const bgDiv = document.createElement("div");
+    bgDiv.className = "grid-bg" + (isPattern ? " flipped" : "");
+    bgDiv.style.backgroundImage = `url("/quilts/${encodeURIComponent(activeQuilt)}/overview.jpg")`;
+    gridArea.appendChild(bgDiv);
+
     for (const rowLetter of rows) {
         const label = document.createElement("div");
         label.className = "row-label";
+        label.style.height = `${cellH}px`;
         label.textContent = rowLetter;
         rowLabelsCol.appendChild(label);
 
         const rowEl = document.createElement("div");
         rowEl.className = "quilt-block-row";
-        rowEl.style.gridTemplateColumns = `repeat(${numCols}, 47px)`;
+        rowEl.style.gridTemplateColumns = `repeat(${numCols}, ${cellW}px)`;
 
-        for (let col = 1; col <= numCols; col++) {
+        for (const col of colNums) {
             const block_id = `${rowLetter}${col}`;
             const block = byId[block_id];
             const el = document.createElement("div");
             el.className = `block ${block ? block.status : "not_started"}`;
             el.id = `block-${block_id}`;
+            el.style.width  = `${blockW}px`;
+            el.style.height = `${blockH}px`;
             el.innerHTML = `
                 <span class="block-id">${block_id}</span>
                 <span class="block-info">${block ? block.fragments.length + "s " + block.piece_count + "p" : ""}</span>
@@ -166,8 +192,11 @@ function renderGrid(grid) {
     body.appendChild(rowLabelsCol);
     body.appendChild(gridArea);
     container.appendChild(body);
+}
 
-    gridArea.style.backgroundImage = `url("/quilts/${encodeURIComponent(activeQuilt)}/overview.jpg")`;
+function setGridView(view) {
+    gridView = view;
+    renderGrid(patternData.grid);
 }
 
 // ── Block selection ───────────────────────────────────────────────────────
