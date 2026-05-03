@@ -711,7 +711,7 @@ def _copy_assy_images(assy_folder: Path, out_dir: Path) -> None:
     print(f"Copied {len(images)} assy images to {dest}")
 
 
-def _copy_overview_image(overview_folder: Path, out_dir: Path) -> None:
+def _copy_overview_image(overview_folder: Path, out_dir: Path, rotate_ccw: int = 0) -> None:
     images = sorted_images(overview_folder, "overview")
     if not images:
         return
@@ -719,8 +719,13 @@ def _copy_overview_image(overview_folder: Path, out_dir: Path) -> None:
     if dest.exists():
         print(f"  quilt_overview.jpg already exists — skipping (edit manually if needed)")
         return
-    dest.write_bytes(images[0].read_bytes())
-    print(f"  Copied {images[0].name} -> quilt_overview.jpg (replace manually if needed)")
+    if rotate_ccw:
+        rotated = Image.open(images[0]).rotate(rotate_ccw, expand=True)
+        rotated.save(dest, quality=92)
+        print(f"  Copied {images[0].name} -> quilt_overview.jpg (rotated {rotate_ccw}° CCW)")
+    else:
+        dest.write_bytes(images[0].read_bytes())
+        print(f"  Copied {images[0].name} -> quilt_overview.jpg (replace manually if needed)")
 
 
 # ---------------------------------------------------------------------------
@@ -796,11 +801,12 @@ def main() -> None:
         if overview_data and not args.dry_run:
             (out_dir / "overview_data.json").write_text(json.dumps(overview_data, indent=2), encoding="utf-8")
             print(f"Wrote overview_data.json")
-            _copy_overview_image(overview_folder, out_dir)
             detected = _detect_grid_from_overview(overview_data)
             if detected:
                 grid_rows, grid_cols, grid_layout = detected
                 _update_config_grid(out_dir, grid_rows, grid_cols, grid_layout)
+            rotate_ccw = 90 if grid_layout == "col_letters" else 0
+            _copy_overview_image(overview_folder, out_dir, rotate_ccw=rotate_ccw)
         fabric_lookup = build_fabric_lookup(overview_data)
         print(f"Fabric lookup: {len(fabric_lookup)} fabrics")
 
