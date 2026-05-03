@@ -268,7 +268,7 @@ DATA = [
     ('GO', 'Gotham Grey', '862', 'Fat 1/16YD', 2, 'B2r', 2, 13),
     ('GO', 'Gotham Grey', '862', 'Fat 1/16YD', 3, 'B4f', 5, 13),
     ('GO', 'Gotham Grey', '862', 'Fat 1/16YD', 4, 'C2w', 1, 13),
-    ('GO', 'Gotham Grey', '862', 'Fat 1/16YD', 5, 'C2l', 2, 13),
+    ('GO', 'Gotham Grey', '862', 'Fat 1/16YD', 5, 'C21', 2, 13),
     ('GO', 'Gotham Grey', '862', 'Fat 1/16YD', 6, 'C4g', 5, 13),
     ('GO', 'Gotham Grey', '862', 'Fat 1/16YD', 7, 'C4i', 2, 13),
     ('GO', 'Gotham Grey', '862', 'Fat 1/16YD', 8, 'D2b', 3, 13),
