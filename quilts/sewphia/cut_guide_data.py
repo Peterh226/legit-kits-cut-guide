@@ -343,7 +343,7 @@ DATA = [
     ('HO', 'Chocolate', '1073', 'Fat 1/8YD', 28, 'D4b', 5, 15),
     ('HY', 'Honey', '1162', '4.5"x5.5"Fragment', 1, 'A1d', 3, 16),
     ('HY', 'Honey', '1162', '4.5"x5.5"Fragment', 2, 'A2L', 1, 16),
-    ('IM', 'Crimson', '1091', '5.5"x9"Scrap', 1, 'B3j5', 1, 16),
+    ('IM', 'Crimson', '1091', '5.5"x9"Scrap', 1, 'B3j', 5, 16),
     ('IM', 'Crimson', '1091', '5.5"x9"Scrap', 2, 'D1b', 2, 16),
     ('IM', 'Crimson', '1091', '5.5"x9"Scrap', 3, 'D1d', 2, 16),
     ('IN', 'Cinnamon', '1075', 'Fat 1/4YD', 1, 'A1e', 1, 17),
