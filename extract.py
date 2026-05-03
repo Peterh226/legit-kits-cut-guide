@@ -294,24 +294,6 @@ def validate_cut_rows(rows: list, img_name: str, fabric_lookup: dict | None = No
                     warnings.append(f"Fabric {code}: duplicate piece_num {pn}")
                 seen.add(pn)
 
-    # Check 3: duplicate or non-contiguous sew_sequence within same template_code
-    by_tmpl: dict = _dd(list)
-    for row in valid_rows:
-        tmpl = (row.get("template_code") or "").strip()
-        if tmpl:
-            by_tmpl[tmpl].append(row)
-    for tmpl, tmpl_rows in by_tmpl.items():
-        seqs = [r.get("quantity") for r in tmpl_rows if r.get("quantity") is not None]
-        seq_set = set(seqs)
-        if len(seqs) != len(seq_set):
-            dups = [s for s in seq_set if seqs.count(s) > 1]
-            warnings.append(f"Template {tmpl}: duplicate sew_sequence(s) {dups}")
-        if seqs:
-            expected = set(range(1, len(seqs) + 1))
-            missing = sorted(expected - seq_set)
-            if missing:
-                warnings.append(f"Template {tmpl}: sew_sequence gap(s) — missing {missing}")
-
     return warnings
 
 
