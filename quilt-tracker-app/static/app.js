@@ -159,6 +159,10 @@ function renderGrid(grid) {
     bgDiv.style.backgroundImage = `url("/quilts/${encodeURIComponent(activeQuilt)}/overview.jpg")`;
     gridArea.appendChild(bgDiv);
 
+    const overlayDiv = document.createElement("div");
+    overlayDiv.className = "grid-overlay";
+    gridArea.appendChild(overlayDiv);
+
     for (const rowLetter of rows) {
         const label = document.createElement("div");
         label.className = "row-label";

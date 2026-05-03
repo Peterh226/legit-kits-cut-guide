@@ -111,14 +111,7 @@ main {
     width: 376px;
     border-radius: 4px;
     overflow: hidden;
-}
-
-.quilt-grid-area::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(15, 15, 35, 0.45);
-    z-index: 0;
+    isolation: isolate;
 }
 
 .grid-bg {
@@ -126,9 +119,17 @@ main {
     inset: 0;
     background-size: cover;
     background-position: center top;
-    z-index: -1;
+    z-index: 0;
 }
 .grid-bg.flipped { transform: scaleX(-1); }
+
+.grid-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 15, 35, 0.45);
+    z-index: 1;
+    pointer-events: none;
+}
 
 .grid-view-toggle {
     display: flex;
@@ -153,7 +154,7 @@ main {
     grid-template-columns: repeat(8, 47px);
     margin-bottom: 3px;
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 .quilt-block-row:last-child { margin-bottom: 0; }
 .quilt-row-labels .row-label:last-child { margin-bottom: 0; }
