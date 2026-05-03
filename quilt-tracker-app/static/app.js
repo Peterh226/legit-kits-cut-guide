@@ -115,8 +115,12 @@ function renderGrid(grid) {
     const container = document.getElementById("quilt-grid");
     container.innerHTML = "";
 
+    const colTemplate = `28px repeat(${numCols}, 47px)`;
+    const gridWidth   = `${numCols * 47}px`;
+
     const labelRow = document.createElement("div");
     labelRow.className = "quilt-labels";
+    labelRow.style.gridTemplateColumns = colTemplate;
     labelRow.innerHTML = "<span></span>" +
         Array.from({length: numCols}, (_, i) => i + 1).map(c => `<span>${c}</span>`).join("");
     container.appendChild(labelRow);
@@ -131,6 +135,7 @@ function renderGrid(grid) {
 
     const gridArea = document.createElement("div");
     gridArea.className = "quilt-grid-area";
+    gridArea.style.width = gridWidth;
 
     for (const rowLetter of rows) {
         const label = document.createElement("div");
@@ -140,6 +145,7 @@ function renderGrid(grid) {
 
         const rowEl = document.createElement("div");
         rowEl.className = "quilt-block-row";
+        rowEl.style.gridTemplateColumns = `repeat(${numCols}, 47px)`;
 
         for (let col = 1; col <= numCols; col++) {
             const block_id = `${rowLetter}${col}`;
