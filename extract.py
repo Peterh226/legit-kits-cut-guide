@@ -339,6 +339,13 @@ quilt dimensions, block counts, or other metadata.
 For fabric lists, extract each fabric as:
   {"code": "AF", "name": "Saffron", "sku": "1320", "yardage": "Fat 1/8YD"}
 
+If the page shows a "Pattern Side" or "Finished Quilt" block grid, include a "grid" field
+with the row and column labels EXACTLY as printed — some quilts have letters across the top
+(columns) and numbers down the side (rows); others have numbers across and letters down.
+Report whichever labels appear for rows vs columns:
+  "grid": {"rows": ["A","B","C","D"], "columns": [1,2,3,4]}   // letters down side
+  "grid": {"rows": [1,2,3,4], "columns": ["A","B","C","D"]}   // letters across top
+
 Return a JSON object with whatever fields are present, for example:
 {
   "quilt_name": "Land of the Free",
@@ -792,8 +799,8 @@ def main() -> None:
             _copy_overview_image(overview_folder, out_dir)
             detected = _detect_grid_from_overview(overview_data)
             if detected:
-                grid_rows, grid_cols = detected
-                _update_config_grid(out_dir, grid_rows, grid_cols)
+                grid_rows, grid_cols, grid_layout = detected
+                _update_config_grid(out_dir, grid_rows, grid_cols, grid_layout)
         fabric_lookup = build_fabric_lookup(overview_data)
         print(f"Fabric lookup: {len(fabric_lookup)} fabrics")
 
@@ -836,8 +843,12 @@ def main() -> None:
     print("\nDone.")
 
 
-def _detect_grid_from_overview(overview_data: list[dict]) -> tuple[str, int] | None:
-    """Return (grid_rows_str, grid_cols_int) if a pattern-side grid is found in overview data."""
+def _detect_grid_from_overview(overview_data: list[dict]) -> tuple[str, int, str] | None:
+    """Return (grid_rows_str, grid_cols_int, grid_layout) from a pattern-side grid in overview data.
+
+    grid_layout is 'row_letters' if letters label rows (down the side),
+    or 'col_letters' if letters label columns (across the top).
+    """
     for page in overview_data:
         if not isinstance(page, dict):
             continue
@@ -846,22 +857,30 @@ def _detect_grid_from_overview(overview_data: list[dict]) -> tuple[str, int] | N
             continue
         rows = grid.get("rows", [])
         cols = grid.get("columns", [])
-        if rows and cols:
-            row_str = "".join(str(r) for r in rows if len(str(r)) == 1 and str(r).isalpha())
-            if row_str and len(cols) > 0:
-                return row_str.upper(), len(cols)
+        if not rows or not cols:
+            continue
+        row_letter_str = "".join(str(r).upper() for r in rows
+                                  if len(str(r)) == 1 and str(r).isalpha())
+        col_letter_str = "".join(str(c).upper() for c in cols
+                                  if len(str(c)) == 1 and str(c).isalpha())
+        if row_letter_str:
+            return row_letter_str, len(cols), "row_letters"
+        if col_letter_str:
+            return col_letter_str, len(rows), "col_letters"
     return None
 
 
-def _update_config_grid(out_dir: Path, grid_rows: str, grid_cols: int) -> None:
+def _update_config_grid(out_dir: Path, grid_rows: str, grid_cols: int, grid_layout: str = "row_letters") -> None:
     config_path = out_dir / "config.json"
     config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
-    if config.get("grid_rows") == grid_rows and config.get("grid_cols") == grid_cols:
+    if (config.get("grid_rows") == grid_rows and config.get("grid_cols") == grid_cols
+            and config.get("grid_layout") == grid_layout):
         return
-    config["grid_rows"] = grid_rows
-    config["grid_cols"] = grid_cols
+    config["grid_rows"]   = grid_rows
+    config["grid_cols"]   = grid_cols
+    config["grid_layout"] = grid_layout
     config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
-    print(f"  [grid] Detected {len(grid_rows)}×{grid_cols} grid ({grid_rows} × 1-{grid_cols}) — saved to config.json")
+    print(f"  [grid] Detected {grid_layout} {len(grid_rows)}×{grid_cols} grid — saved to config.json")
 
 
 def _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis_path, overview_staging_path,
