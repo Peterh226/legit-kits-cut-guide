@@ -1,11 +1,12 @@
 """
 Legit Kits Cut Guide — Data Linter
 ====================================
-Checks data/cut_guide_data.py for common errors before generating the spreadsheet.
+Checks cut_guide_data.py for common errors before generating the spreadsheet.
 
 Usage:
-    python lint.py
-    python lint.py --fix      # auto-fix what it can (currently: none — all fixes are manual)
+    python lint.py                        # first quilt in quilts/
+    python lint.py --quilt-id sewphia
+    python lint.py --quilt-id skulliver
 
 Exit codes:
     0  no issues found
@@ -14,14 +15,41 @@ Exit codes:
 """
 
 import argparse
+import json
+import re
 import sys
 from collections import defaultdict
-from data.cut_guide_data import DATA
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Quilt loading (same pattern as generate.py)
+# ---------------------------------------------------------------------------
+
+def _load_quilt(quilt_id):
+    root = Path(__file__).parent
+    quilt_dir = root / "quilts" / quilt_id
+    if not quilt_dir.exists():
+        raise SystemExit(f"Error: quilts/{quilt_id}/ not found")
+    g = {}
+    exec((quilt_dir / "cut_guide_data.py").read_text(encoding="utf-8"), g)
+    config_path = quilt_dir / "config.json"
+    config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    return g["DATA"], config.get("quilt_name", quilt_id)
+
+
+def _default_quilt_id():
+    quilts_dir = Path(__file__).parent / "quilts"
+    ids = sorted(p.name for p in quilts_dir.iterdir() if p.is_dir()) if quilts_dir.exists() else []
+    if not ids:
+        raise SystemExit("Error: no quilts found in quilts/")
+    return ids[0]
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 EXPECTED_FIELDS = 8
 
 def _row_label(row):
@@ -31,6 +59,7 @@ def _row_label(row):
 # ---------------------------------------------------------------------------
 # Checks
 # ---------------------------------------------------------------------------
+
 def check_field_count(data):
     """Every tuple must have exactly 8 fields."""
     errors = []
@@ -41,12 +70,7 @@ def check_field_count(data):
 
 
 def check_ambiguous_codes(data):
-    """
-    Warn on fabric codes that are likely to be misread:
-    - Single letters (easy to miss that it's just one letter)
-    - Codes where a letter looks like two (e.g. 'SI' vs 'S', 'IL' vs 'I')
-    - Codes that differ from others by only one character
-    """
+    """Warn on fabric codes likely to be misread."""
     warnings = []
     codes = sorted({row[0] for row in data})
 
@@ -56,7 +80,6 @@ def check_ambiguous_codes(data):
             f"  Single-letter codes (easy to misread — verify against scan): {', '.join(single_letter)}"
         )
 
-    # Flag codes that are a prefix of another code
     for c in codes:
         longer = [other for other in codes if other != c and other.startswith(c)]
         if longer:
@@ -68,7 +91,7 @@ def check_ambiguous_codes(data):
 
 
 def check_duplicate_fabric_codes(data):
-    """Each fabric code should appear on only one page."""
+    """Each fabric code should map to exactly one fabric name."""
     code_pages = defaultdict(set)
     code_names = defaultdict(set)
     for row in data:
@@ -79,9 +102,8 @@ def check_duplicate_fabric_codes(data):
     warnings = []
     for code, pages in code_pages.items():
         if len(pages) > 2:
-            # More than 2 pages is suspicious (UP Cappuccino spans 2 legitimately)
             warnings.append(
-                f"  Code '{code}' appears on {len(pages)} pages: {sorted(pages)} — verify it's not a duplicate code"
+                f"  Code '{code}' appears on {len(pages)} pages: {sorted(pages)} — verify it's not a duplicate"
             )
 
     errors = []
@@ -95,11 +117,7 @@ def check_duplicate_fabric_codes(data):
 
 
 def check_piece_numbering(data):
-    """
-    Within each fabric code, piece numbers should:
-    - Start at 1
-    - Be sequential integers (gaps are suspicious)
-    """
+    """Within each fabric code, piece numbers should start at 1 and be sequential."""
     by_code = defaultdict(list)
     for row in data:
         by_code[row[0]].append(row[4])
@@ -112,13 +130,8 @@ def check_piece_numbering(data):
         expected = list(range(1, len(pieces_sorted) + 1))
         if pieces_sorted != expected:
             missing = sorted(set(expected) - set(pieces_sorted))
-            dupes   = [p for p in pieces_sorted if pieces_sorted.count(p) > 1]
             if missing:
                 warnings.append(f"  {code}: missing piece numbers {missing}")
-            if dupes:
-                # Duplicates are actually valid — same template used multiple times
-                # so just note them at low severity
-                pass
 
     return warnings
 
@@ -137,17 +150,7 @@ def check_quantities(data):
 
 
 def check_page_numbers(data):
-    """Page numbers should be positive integers within the expected range."""
-
-    # Pages that are intentional continuations of a multi-page fabric —
-    # data is stored under the first page, so these will always appear "missing".
-    # Add to this list whenever a fabric spans more than one page.
-    KNOWN_CONTINUATION_PAGES = {
-        19,  # Chocolate (HO) continues from p.19 — data stored under p.19 first half
-        51,  # Sable (SL) continues from p.51 — data stored under p.51 first half
-        59,  # Cappuccino (UP) continues from p.58 — data stored under p.58
-    }
-
+    """Page numbers should be positive integers; flag gaps in coverage."""
     errors   = []
     warnings = []
     for i, row in enumerate(data):
@@ -155,29 +158,25 @@ def check_page_numbers(data):
         if not isinstance(page, int) or page <= 0:
             errors.append(f"  Row {i+1} {_row_label(row)}: invalid page '{page}'")
 
-    # Check for page gaps (might indicate a missing fabric)
-    all_pages  = sorted({row[7] for row in data})
+    all_pages = sorted({row[7] for row in data})
     if all_pages:
         full_range = list(range(all_pages[0], all_pages[-1] + 1))
-        missing    = sorted(set(full_range) - set(all_pages) - KNOWN_CONTINUATION_PAGES)
+        missing    = sorted(set(full_range) - set(all_pages))
         if missing:
-            warnings.append(f"  No data found for pages: {missing} — were these pages skipped?")
+            warnings.append(
+                f"  No data for pages: {missing} — may be continuation pages or graphics-only; verify against scan"
+            )
 
     return warnings, errors
 
 
 def check_template_codes(data):
-    """
-    Template codes follow a pattern: one or two uppercase letters followed by
-    digits and optional lowercase suffix (e.g. F3m, G7L, A1, D2a).
-    Flag anything that doesn't match.
-    """
-    import re
+    """Template codes should match the expected pattern (e.g. F3m, B12, C210, A1L)."""
     pattern = re.compile(r'^[A-Z]{1,2}\d+[a-zA-Z]?$')
     warnings = []
     for row in data:
         tmpl = row[5]
-        if not pattern.match(tmpl):
+        if not pattern.match(str(tmpl)):
             warnings.append(f"  {_row_label(row)}: unusual template code '{tmpl}' — verify against scan")
     return warnings
 
@@ -185,53 +184,46 @@ def check_template_codes(data):
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
-def run_lint(data):
+
+def run_lint(data, quilt_name):
     all_errors   = []
     all_warnings = []
 
-    # Field count
     errs = check_field_count(data)
     if errs:
         all_errors.append(("Field count", errs))
 
-    # Ambiguous codes
     warns = check_ambiguous_codes(data)
     if warns:
         all_warnings.append(("Ambiguous fabric codes", warns))
 
-    # Duplicate codes
     warns, errs = check_duplicate_fabric_codes(data)
     if warns:
         all_warnings.append(("Fabric code page spread", warns))
     if errs:
         all_errors.append(("Fabric code name mismatch", errs))
 
-    # Piece numbering
     warns = check_piece_numbering(data)
     if warns:
         all_warnings.append(("Piece numbering", warns))
 
-    # Quantities
     warns, errs = check_quantities(data)
     if warns:
         all_warnings.append(("Unusual quantities", warns))
     if errs:
         all_errors.append(("Invalid quantities", errs))
 
-    # Page numbers
     warns, errs = check_page_numbers(data)
     if warns:
         all_warnings.append(("Page coverage", warns))
     if errs:
         all_errors.append(("Invalid page numbers", errs))
 
-    # Template codes
     warns = check_template_codes(data)
     if warns:
         all_warnings.append(("Unusual template codes", warns))
 
-    # ── Report ──────────────────────────────────────────────────────────────
-    print(f"Linting {len(data)} rows across "
+    print(f"Linting {quilt_name}: {len(data)} rows, "
           f"{len({r[0] for r in data})} fabrics...\n")
 
     if all_warnings:
@@ -250,18 +242,20 @@ def run_lint(data):
 
     print()
     if not all_errors and not all_warnings:
-        print("✓ No issues found.")
+        print("No issues found.")
         return 0
     elif not all_errors:
-        print(f"✓ No errors. {sum(len(i) for _, i in all_warnings)} warning(s) to review.")
+        print(f"No errors. {sum(len(i) for _, i in all_warnings)} warning(s) to review.")
         return 1
     else:
-        print(f"✗ {sum(len(i) for _, i in all_errors)} error(s) found. "
-              f"Fix before running generate.py.")
+        print(f"{sum(len(i) for _, i in all_errors)} error(s) found. Fix before running generate.py.")
         return 2
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Lint the cut guide data file")
-    parser.parse_args()
-    sys.exit(run_lint(DATA))
+    parser = argparse.ArgumentParser(description="Lint Legit Kits cut guide data")
+    parser.add_argument("--quilt-id", "-q", help="Quilt ID (default: first in quilts/)")
+    args = parser.parse_args()
+    quilt_id = args.quilt_id or _default_quilt_id()
+    data, quilt_name = _load_quilt(quilt_id)
+    sys.exit(run_lint(data, quilt_name))
