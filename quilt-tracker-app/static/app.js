@@ -110,30 +110,20 @@ function renderStats(stats) {
 // ── Quilt grid ────────────────────────────────────────────────────────────
 
 function renderGrid(grid) {
-    const gridLayout = patternData.grid_layout || "row_letters";
-    const gridRows   = patternData.grid_rows || "ABCDEFGH";
-    const numCols    = patternData.grid_cols || 8;
-    const container  = document.getElementById("quilt-grid");
+    const rows    = patternData.grid_rows || "ABCDEFGH";
+    const numCols = patternData.grid_cols || 8;
+    const container = document.getElementById("quilt-grid");
     container.innerHTML = "";
     const byId = Object.fromEntries(grid.map(b => [b.id, b]));
 
-    // col_letters: letters label columns (across top), numbers label rows (down side)
-    //              block ID = letter + number  e.g. "B1" = col B, row 1
-    // row_letters: letters label rows (down side), numbers label columns (across top)
-    //              block ID = letter + number  e.g. "A2" = row A, col 2  (default)
-    const colLetters = gridLayout === "col_letters";
-    const numDisplayCols = colLetters ? gridRows.length : numCols;
-    const numDisplayRows = colLetters ? numCols          : gridRows.length;
-    const colLabels      = colLetters ? [...gridRows]    : Array.from({length: numCols}, (_, i) => i + 1);
-    const rowLabels      = colLetters ? Array.from({length: numCols}, (_, i) => i + 1) : [...gridRows];
-
-    const colTemplate = `28px repeat(${numDisplayCols}, 47px)`;
-    const gridWidth   = `${numDisplayCols * 47}px`;
+    const colTemplate = `28px repeat(${numCols}, 47px)`;
+    const gridWidth   = `${numCols * 47}px`;
 
     const labelRow = document.createElement("div");
     labelRow.className = "quilt-labels";
     labelRow.style.gridTemplateColumns = colTemplate;
-    labelRow.innerHTML = "<span></span>" + colLabels.map(c => `<span>${c}</span>`).join("");
+    labelRow.innerHTML = "<span></span>" +
+        Array.from({length: numCols}, (_, i) => i + 1).map(c => `<span>${c}</span>`).join("");
     container.appendChild(labelRow);
 
     const body = document.createElement("div");
@@ -146,20 +136,18 @@ function renderGrid(grid) {
     gridArea.className = "quilt-grid-area";
     gridArea.style.width = gridWidth;
 
-    for (let r = 0; r < numDisplayRows; r++) {
+    for (const rowLetter of rows) {
         const label = document.createElement("div");
         label.className = "row-label";
-        label.textContent = rowLabels[r];
+        label.textContent = rowLetter;
         rowLabelsCol.appendChild(label);
 
         const rowEl = document.createElement("div");
         rowEl.className = "quilt-block-row";
-        rowEl.style.gridTemplateColumns = `repeat(${numDisplayCols}, 47px)`;
+        rowEl.style.gridTemplateColumns = `repeat(${numCols}, 47px)`;
 
-        for (let c = 0; c < numDisplayCols; c++) {
-            const block_id = colLetters
-                ? `${gridRows[c]}${r + 1}`       // col_letters: letter=col, number=row
-                : `${gridRows[r]}${c + 1}`;       // row_letters: letter=row, number=col
+        for (let col = 1; col <= numCols; col++) {
+            const block_id = `${rowLetter}${col}`;
             const block = byId[block_id];
             const el = document.createElement("div");
             el.className = `block ${block ? block.status : "not_started"}`;
