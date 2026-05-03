@@ -18,6 +18,7 @@ env/
 
 # Generated data (not committed — large or Pi-local)
 quilts/*/overview_data.json
+quilts/*/lint_report.txt
 
 # Cut images not needed on Pi (piece list shown instead)
 quilts/*/cut/

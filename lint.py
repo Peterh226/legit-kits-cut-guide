@@ -253,9 +253,21 @@ def run_lint(data, quilt_name):
 
 
 if __name__ == "__main__":
+    import contextlib, io
     parser = argparse.ArgumentParser(description="Lint Legit Kits cut guide data")
     parser.add_argument("--quilt-id", "-q", help="Quilt ID (default: first in quilts/)")
     args = parser.parse_args()
     quilt_id = args.quilt_id or _default_quilt_id()
     data, quilt_name = _load_quilt(quilt_id)
-    sys.exit(run_lint(data, quilt_name))
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        exit_code = run_lint(data, quilt_name)
+    output = buf.getvalue()
+    print(output, end="")
+
+    report_path = Path(__file__).parent / "quilts" / quilt_id / "lint_report.txt"
+    report_path.write_text(output, encoding="utf-8")
+    print(f"Report written to quilts/{quilt_id}/lint_report.txt")
+
+    sys.exit(exit_code)
