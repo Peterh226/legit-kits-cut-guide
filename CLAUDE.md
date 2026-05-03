@@ -9,10 +9,12 @@ Legit Quilt Kit
 -   Example names
 -     Land Of The Free
 -     Skulliver
+-     Sewphia
 - Each quilt is made up of blocks
--   block columns are enumerated 1 to n, where n is typically 8
--   block rows are enumerated A through H typically, but can be less
--   from the assembly jpg files, the images that contain Finished Quilt or Pattern Side each will display the row and column numbers for each block.
+-   block columns are enumerated 1 to n (configurable per quilt; typically 4 or 8)
+-   block rows are enumerated A through N (configurable per quilt; typically A-D or A-H)
+-   grid dimensions are stored in `config.json` (`grid_rows`, `grid_cols`) and auto-detected from the overview stage
+-   from the overview jpg files, the images that contain Finished Quilt or Pattern Side each will display the row and column numbers for each block.
 - Each block is made up of 0 or more segments
 -   If a block has 0 segments, then it is only made up of pieces
 - Segments are made up from more than one piece.
@@ -29,7 +31,8 @@ Legit Quilt Kit
 
 -   Run extract.py to create data files for a new quilt
 -     Input
--       - JPG files organized into overview/, cut/, and assy/ folders under the Quilt name
+-       - JPG files organized into overview/, cut/, and assy/ folders under the quilt scan folder
+-       - Scans live at: `C:\Users\peter\OneDrive - heathprof.com\Quilting\Scans\<quilt-name>\`
 -     Output
 -       - `quilts/<id>/cut_guide_data.py`, `assembly_data.py`, `assembly_guide.json`, `overview_data.json`
 -       - Staging files (`cut_raw.json`, etc.) for resume/re-run support
@@ -57,7 +60,7 @@ Access at **http://localhost:3001** (or `http://<pi-ip>:3001` on the RPi).
 python generate.py                        # Generate CutGuide.xlsx for active quilt
 python tracking.py                        # Generate Tracker.xlsx for active quilt
 python lint.py                            # Validate cut_guide_data.py
-python extract.py <pattern_folder>        # Extract all stages from scanned images
+python extract.py <scan_folder>           # Extract all stages from scanned images
 ```
 
 `extract.py` requires `ANTHROPIC_API_KEY` in the environment (or a `.env` file).
@@ -66,30 +69,30 @@ python extract.py <pattern_folder>        # Extract all stages from scanned imag
 
 ```bash
 # Full extraction for a new quilt (auto-derives quilt-id from folder name)
-python extract.py ../Skulliver
+python extract.py "C:\Users\peter\OneDrive - heathprof.com\Quilting\Scans\NewQuilt"
 
 # Run only one stage
-python extract.py ../Skulliver --stage cut
-python extract.py ../Skulliver --stage assy
-python extract.py ../Skulliver --stage overview
+python extract.py "<scan_folder>" --stage cut
+python extract.py "<scan_folder>" --stage assy
+python extract.py "<scan_folder>" --stage overview
 
 # Resume after a crash — skips already-processed pages
-python extract.py ../Skulliver --stage cut --resume
+python extract.py "<scan_folder>" --stage cut --resume
 
 # Re-run a single bad page (1-based)
-python extract.py ../Skulliver --stage cut --page 15
+python extract.py "<scan_folder>" --stage cut --page 15
 
 # Re-run a range of pages
-python extract.py ../Skulliver --stage cut --pages 30-40
+python extract.py "<scan_folder>" --stage cut --pages 30-40
 
 # Check what has been processed and what errored
-python extract.py ../Skulliver --status
+python extract.py "<scan_folder>" --status
 
 # Write final output files from existing staging data (no API calls)
-python extract.py ../Skulliver --finalize
+python extract.py "<scan_folder>" --finalize
 
 # Process but don't write output files (for inspection)
-python extract.py ../Skulliver --stage cut --dry-run
+python extract.py "<scan_folder>" --stage cut --dry-run
 ```
 
 Each page is checkpointed immediately after processing into staging files
@@ -97,23 +100,27 @@ Each page is checkpointed immediately after processing into staging files
 `overview_001.jpg` is auto-copied as `quilt_overview.jpg` on first overview run
 (replace manually if a different image is needed as the background grid).
 
+The grid dimensions (`grid_rows`, `grid_cols`) are auto-detected from the overview stage
+(Pattern Side / Finished Quilt pages) and written to `config.json`. They can also be set
+manually in `config.json` before running the assy stage.
+
 ## Architecture
 
 **Flask Web App (`quilt-tracker-app/`)** — Python 3 / Flask, port 3001:
 - `app.py` — routes, progress logic, pattern data loading; auto-discovers quilts from `quilts/`
 - `templates/index.html` — single-page UI with quilt selector
-- `static/app.js`, `static/style.css` — frontend, no build step
+- `static/app.js`, `static/style.css` — frontend, no build step; grid renders dynamically based on per-quilt grid dimensions
 - Progress stored per-quilt in `quilt-tracker-app/progress/<quilt-id>/`:
   - `progress.json` — fragment-level status (not started / in progress / complete)
   - `piece_progress.json` — piece-level cut checkboxes
   - `sewing_progress.json` — sewing step checkboxes
 
 **Per-quilt data layer (`quilts/<quilt-id>/`):**
-- `cut_guide_data.py` — `DATA`: list of 8-tuples `(fabric_code, fabric_name, sku, fabric_size, cut_num, segment_id, sew_sequence, page)` — maps to Cut Guide Excel columns Cut #, Segment ID, Sew Sequence, Page
-- `assembly_data.py` — `BLOCKS`: dict mapping block ID → list of fragment IDs (64 blocks)
+- `cut_guide_data.py` — `DATA`: list of 8-tuples `(fabric_code, fabric_name, sku, fabric_size, piece_num, template_code, quantity, page)` — `piece_num` = Cut #, `template_code` = Segment ID, `quantity` = cut count (number in parentheses after segment ID)
+- `assembly_data.py` — `BLOCKS`: dict mapping block ID → list of fragment IDs (count depends on grid size: 64 for 8×8, 16 for 4×4, etc.)
 - `assembly_guide.json` — visual assembly data (bboxes, circles, sewing steps) generated by `extract.py`
 - `overview_data.json` — fabric list and pattern name (gitignored; not needed by app at runtime)
-- `config.json` — `quilt_name` and `start_date`; authoritative source for quilt name
+- `config.json` — `quilt_name`, `start_date`, `grid_rows` (string of row letters e.g. `"ABCDEFGH"`), `grid_cols` (int); authoritative source for quilt identity and grid size
 - `quilt_overview.jpg` — background grid image shown behind the block grid
 - `assy/` — assembly guide images (one per multi-fragment block)
 
@@ -123,8 +130,9 @@ Each page is checkpointed immediately after processing into staging files
 - Used by `extract.py --resume` and `--finalize`
 
 **Active quilts:**
-- `land-of-the-free` — Land of the Free (86 fabrics, 1,614 cut rows)
-- `skulliver` — Skulliver (106 fabrics, 912 cut rows)
+- `land-of-the-free` — Land of the Free (86 fabrics, 1,614 cut rows, 8×8 grid)
+- `skulliver` — Skulliver (106 fabrics, 912 cut rows, 8×8 grid)
+- `sewphia` — Sewphia (71 fabrics, 1,103 cut rows, 4×4 grid A-D × 1-4)
 
 **Excel generators:**
 - `generate.py` → CutGuide xlsx (Cut Guide, By Fabric Code, Statistics sheets)
@@ -157,7 +165,8 @@ pm2 status               # check if running
 ## Configuration
 
 No config file needed for the web app. Each quilt's data lives in `quilts/<id>/` and is
-auto-discovered on startup. `config.json` in each quilt folder sets `quilt_name` and `start_date`.
+auto-discovered on startup. `config.json` in each quilt folder sets `quilt_name`, `start_date`,
+`grid_rows`, and `grid_cols`. Grid dimensions default to `"ABCDEFGH"` / `8` if not present.
 
 Progress files (`progress/`, `piece_progress/`, `sewing_progress/` under `quilt-tracker-app/progress/<id>/`)
 are gitignored — they live only on the Pi and persist quilt progress across sessions.
