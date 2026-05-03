@@ -87,9 +87,10 @@ def _load_pattern(data_dir):
             if page.get("quilt_name"):
                 pattern_name = page["quilt_name"]
                 break
-    start_date = config.get("start_date", "")
-    grid_rows = config.get("grid_rows", "ABCDEFGH")
-    grid_cols = int(config.get("grid_cols", 8))
+    start_date  = config.get("start_date", "")
+    grid_rows   = config.get("grid_rows", "ABCDEFGH")
+    grid_cols   = int(config.get("grid_cols", 8))
+    grid_layout = config.get("grid_layout", "row_letters")
 
     fabrics = {}
     for row in DATA:
@@ -132,12 +133,13 @@ def _load_pattern(data_dir):
         }
 
     return {
-        "name":       pattern_name,
-        "start_date": start_date,
-        "blocks":     blocks,
-        "fabrics":    fabrics,
-        "grid_rows":  grid_rows,
-        "grid_cols":  grid_cols,
+        "name":        pattern_name,
+        "start_date":  start_date,
+        "blocks":      blocks,
+        "fabrics":     fabrics,
+        "grid_rows":   grid_rows,
+        "grid_cols":   grid_cols,
+        "grid_layout": grid_layout,
     }
 
 
@@ -271,12 +273,13 @@ def api_pattern():
             "piece_count": len(b["pieces"]),
         })
     return jsonify({
-        "name":       pattern["name"],
-        "start_date": pattern["start_date"],
-        "grid":       grid,
-        "grid_rows":  pattern["grid_rows"],
-        "grid_cols":  pattern["grid_cols"],
-        "stats":      build_stats(pattern, progress),
+        "name":        pattern["name"],
+        "start_date":  pattern["start_date"],
+        "grid":        grid,
+        "grid_rows":   pattern["grid_rows"],
+        "grid_cols":   pattern["grid_cols"],
+        "grid_layout": pattern["grid_layout"],
+        "stats":       build_stats(pattern, progress),
     })
 
 
