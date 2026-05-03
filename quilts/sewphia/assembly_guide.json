@@ -1521,25 +1521,124 @@
   },
   "D3": {
     "sewing_sequence": [
-      "Sew D3(b) to D3(c)",
-      "Sew D3(d) to D3(e)",
-      "Sew D3(f) to D3(g)",
-      "Sew D3(fg) to C2(h)",
-      "Sew D3(de) to D3(fgh)",
-      "Sew D3(bc) to D3(d-h)",
-      "Sew D3(a) to D3(b-h)",
-      "Sew D3(i) to D3(j)",
-      "Sew D3(ij) to D3(k)",
-      "Sew D3(L) to D3(m)",
-      "Sew D3(n) to D3(o)",
-      "Sew D3(Lm) to D3(no)",
-      "Sew D3(L-o) to D3(p)",
-      "Sew D3(ijk) to D3(L-p)",
-      "Sew D3(a-h) to D3(i-p)",
-      "Sew D3(q) to D3(r)",
-      "Sew D3(a-p) to D3(qr)"
+      "Sew D3(a) to D3(b) [1]",
+      "Sew D3(d) to D3(e) [2]",
+      "Sew D3(de) to D3(g) [3]",
+      "Sew D3(c) to D3(deg) [4]",
+      "Sew D3(cdeg) to D3(f) [5]",
+      "Sew D3(h) to D3(j) [6]",
+      "Sew D3(abcdeg) to D3(hj) [7]",
+      "Sew D3(hj) to D3(i) [8]",
+      "Sew D3(k) to D3(L) [9]",
+      "Sew D3(kL) to D3(m) [10]",
+      "Sew D3(o) to D3(klm) [11]",
+      "Sew D3(n) to D3(oklm) [12]",
+      "Sew D3(noklm) to D3(p) [13]",
+      "Sew D3(fcdeg) to D3(noklmp) [14]",
+      "Sew D3(q) to D3(abcdefghij) [15]",
+      "Sew D3(qabcdefghij) to D3(r) [16]",
+      "Sew D3(qrabcdefghij) to D3(i) [17]"
     ],
-    "instruction_image": "assy_015.jpg"
+    "instruction_image": "assy_015.jpg",
+    "image": "assy_016.jpg",
+    "bbox": [
+      4,
+      5,
+      96,
+      94
+    ],
+    "circles": [
+      {
+        "fragment_id": "D3a",
+        "cx": 16,
+        "cy": 81
+      },
+      {
+        "fragment_id": "D3b",
+        "cx": 27,
+        "cy": 53
+      },
+      {
+        "fragment_id": "D3c",
+        "cx": 30,
+        "cy": 68
+      },
+      {
+        "fragment_id": "D3d",
+        "cx": 32,
+        "cy": 86
+      },
+      {
+        "fragment_id": "D3e",
+        "cx": 35,
+        "cy": 78
+      },
+      {
+        "fragment_id": "D3f",
+        "cx": 47,
+        "cy": 87
+      },
+      {
+        "fragment_id": "D3g",
+        "cx": 41,
+        "cy": 71
+      },
+      {
+        "fragment_id": "D3h",
+        "cx": 42,
+        "cy": 64
+      },
+      {
+        "fragment_id": "D3i",
+        "cx": 51,
+        "cy": 36
+      },
+      {
+        "fragment_id": "D3j",
+        "cx": 49,
+        "cy": 60
+      },
+      {
+        "fragment_id": "D3k",
+        "cx": 50,
+        "cy": 65
+      },
+      {
+        "fragment_id": "D3L",
+        "cx": 56,
+        "cy": 67
+      },
+      {
+        "fragment_id": "D3m",
+        "cx": 76,
+        "cy": 79
+      },
+      {
+        "fragment_id": "D3n",
+        "cx": 65,
+        "cy": 56
+      },
+      {
+        "fragment_id": "D3o",
+        "cx": 67,
+        "cy": 64
+      },
+      {
+        "fragment_id": "D3p",
+        "cx": 82,
+        "cy": 41
+      },
+      {
+        "fragment_id": "D3q",
+        "cx": 24,
+        "cy": 25
+      },
+      {
+        "fragment_id": "D3r",
+        "cx": 35,
+        "cy": 14
+      }
+    ]
   },
   "D4": {
     "image": "assy_017.jpg",
