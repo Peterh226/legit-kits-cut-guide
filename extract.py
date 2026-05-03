@@ -452,10 +452,12 @@ IMPORTANT: The piece list is split across two areas of the page — read ALL of 
 including any entries printed BELOW the diagram image.
 The page number is printed at the bottom of the cut guide page.
 
-IMPORTANT: Template codes like C210 or C211 use a mixed font size where the block ID
-(e.g. "C2") appears slightly larger than the trailing digits ("10", "11"). Do NOT insert
-any separator character (apostrophe, underscore, period, etc.) between them — the template
-code is simply "C210" or "C211" with no separator.
+IMPORTANT: Template codes use a mixed font size where the block ID portion (e.g. "B1",
+"C2") appears slightly larger than the segment suffix that follows ("2", "10", "11", etc.).
+Do NOT insert any separator character between them, and do NOT confuse the segment suffix
+with the cut count. For example: "B12(3)" means template_code="B12", quantity=3 — not
+template_code="B1", quantity=2. Similarly "C210(1)" means template_code="C210", quantity=1.
+If no parenthesised number follows, quantity=1.
 
 Return ONLY a JSON array. Each element represents one piece row:
 [
