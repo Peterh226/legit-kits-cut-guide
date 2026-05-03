@@ -7,16 +7,16 @@ This guide explains how to add cut guide data for a new Legit Kits pattern.
 ## Workflow
 
 1. **Scan the booklets** — scan each page as a separate JPG image (one page per file)
-2. **Organize into folders** under a pattern folder:
+2. **Organize into folders** under the quilt scan folder:
    ```
-   <pattern_folder>/
+   C:\Users\peter\OneDrive - heathprof.com\Quilting\Scans\<QuiltName>\
    ├── cut/       cut_01.jpg, cut_02.jpg, ...   (cut guide pages)
    ├── assy/      assy_01.jpg, assy_02.jpg, ...  (assembly guide pages)
    └── overview/  overview_01.jpg, ...           (overview/kit contents pages)
    ```
 3. **Run the extractor** (requires `ANTHROPIC_API_KEY`):
    ```bash
-   python extract.py <pattern_folder>
+   python extract.py "C:\Users\peter\OneDrive - heathprof.com\Quilting\Scans\<QuiltName>"
    ```
    This calls the Claude vision API on each image, writes output to `quilts/<quilt-id>/`
    (derived from the folder name), then runs `generate.py` and `tracking.py` automatically.
@@ -42,7 +42,7 @@ This guide explains how to add cut guide data for a new Legit Kits pattern.
 Each row in `DATA` is an 8-element tuple:
 
 ```python
-(fabric_code, fabric_name, sku, fabric_size, cut_num, segment_id, sew_sequence, page)
+(fabric_code, fabric_name, sku, fabric_size, piece_num, template_code, quantity, page)
 ```
 
 | Field | Type | Example | Description |
@@ -51,9 +51,9 @@ Each row in `DATA` is an 8-element tuple:
 | `fabric_name` | str | `"Saffron"` | Color name |
 | `sku` | str | `"1320"` | Legit Kits color number |
 | `fabric_size` | str | `"Fat 1/8YD"` | Yardage/size included in kit |
-| `cut_num` | int | `1` | Circled number on the layout diagram — maps to **Cut #** in Excel |
-| `segment_id` | str | `"F3m"` | Segment identifier — maps to **Segment ID** in Excel |
-| `sew_sequence` | int | `3` | Sewing sequence number for this piece — maps to **Sew Sequence** in Excel |
+| `piece_num` | int | `1` | Circled number on the layout diagram — maps to **Cut #** in Excel |
+| `template_code` | str | `"F3m"` | Segment/template identifier — maps to **Segment ID** in Excel |
+| `quantity` | int | `3` | How many of this template to cut — the `(n)` after the segment ID — maps to **Sew Sequence** in Excel |
 | `page` | int | `1` | Cut guide page number |
 
 ---
@@ -79,7 +79,7 @@ Each scanned page shows one or more fabrics. For each fabric:
 - **Top right**: fabric swatch color, fabric name, SKU number, and yardage — the fabric header
 - **Two large letters** (e.g. `AF`) — the fabric code
 - **A layout diagram** with circled numbers — the cut numbers
-- **A legend** listing each piece: `① F3m(3)` = cut #1, segment F3m, sew sequence 3
+- **A legend** listing each piece: `① F3m(3)` = cut #1, template F3m, cut quantity 3
 
 The piece list is **split across two areas** of the page — read both sides to get all pieces.
 
