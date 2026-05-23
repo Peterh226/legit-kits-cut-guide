@@ -12,8 +12,11 @@ let pieceChecks  = {};     // {block_id: {frag_id: {piece_num_str: bool}}}
 let sewingChecks = {};     // {block_id: {step_index_str: bool}}
 let activeQuilt  = null;   // current quilt id
 let excelFiles   = [];     // cached list of xlsx files
-let gridView       = "finished"; // "finished" | "pattern"
-let multiSelectMode = false;    // true when Select Multiple button is active
+let gridView        = "finished"; // "finished" | "pattern"
+let multiSelectMode = false;     // true when Select Multiple button is active
+let activeView      = "quilt";   // "quilt" | "colors"
+let fabricData      = [];        // cached result from /api/fabrics
+let selectedFabric  = null;      // currently selected fabric code in color view
 
 // ── Quilt helpers ─────────────────────────────────────────────────────────
 
@@ -38,8 +41,11 @@ function switchQuilt(quiltId) {
     activeFrag    = null;
     pieceChecks   = {};
     sewingChecks  = {};
-    gridView       = "finished";
+    gridView        = "finished";
     multiSelectMode = false;
+    activeView      = "quilt";
+    fabricData      = [];
+    selectedFabric  = null;
     init();
 }
 
@@ -61,6 +67,12 @@ async function init() {
 
     excelFiles = await fetch("/api/excel" + qp()).then(r => r.json()).catch(() => []);
 
+    // Apply current view state to DOM
+    document.getElementById("quilt-wrap").classList.toggle("active", activeView === "quilt");
+    document.getElementById("color-grid-wrap").classList.toggle("active", activeView === "colors");
+    document.getElementById("btn-view-quilt").classList.toggle("active", activeView === "quilt");
+    document.getElementById("btn-view-colors").classList.toggle("active", activeView === "colors");
+
     const [pp, sp] = await Promise.all([
         fetch("/api/piece_progress" + qp()).then(r => r.json()),
         fetch("/api/sewing_progress" + qp()).then(r => r.json()),
@@ -78,7 +90,7 @@ async function init() {
         sewingChecks[bid] = {};
         for (const [idx, val] of Object.entries(steps)) sewingChecks[bid][idx] = val;
     }
-    await refreshPattern();
+    await Promise.all([refreshPattern(), loadFabrics()]);
 }
 
 async function refreshPattern() {
@@ -805,8 +817,11 @@ function _applyReset(stats) {
     activeFrag     = null;
     pieceChecks    = {};
     sewingChecks   = {};
+    fabricData     = [];
+    selectedFabric = null;
     renderOverview(stats);
     refreshPattern();
+    loadFabrics();
 }
 
 async function doReset() {
@@ -842,6 +857,141 @@ async function doArchiveAndReset() {
     const resetRes = await fetch("/api/progress/reset" + qp(), { method: "POST" });
     const data     = await resetRes.json();
     _applyReset(data.stats);
+}
+
+// ── Color view ────────────────────────────────────────────────────────────
+
+async function loadFabrics() {
+    const res = await fetch("/api/fabrics" + qp());
+    fabricData = await res.json();
+    if (activeView === "colors") renderColorGrid();
+}
+
+function switchView(view) {
+    activeView = view;
+    document.getElementById("quilt-wrap").classList.toggle("active", view === "quilt");
+    document.getElementById("color-grid-wrap").classList.toggle("active", view === "colors");
+    document.getElementById("btn-view-quilt").classList.toggle("active", view === "quilt");
+    document.getElementById("btn-view-colors").classList.toggle("active", view === "colors");
+
+    if (view === "colors") {
+        renderColorGrid();
+        if (selectedFabric) {
+            const fab = fabricData.find(f => f.code === selectedFabric);
+            if (fab) renderFabricDetail(fab);
+        } else {
+            renderOverview(patternData ? patternData.stats : {total:0,complete:0,in_progress:0,not_started:0,pct_complete:0});
+        }
+    } else {
+        if (selectedBlock) loadDetail();
+        else renderOverview(patternData ? patternData.stats : {});
+    }
+}
+
+function contrastColor(hex) {
+    if (!hex) return "#e0e0e0";
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55 ? "#1a1a1a" : "#f0f0f0";
+}
+
+function renderColorGrid() {
+    const grid = document.getElementById("color-grid");
+    if (!fabricData.length) {
+        grid.innerHTML = '<p style="color:#888;padding:12px">Loading fabric data…</p>';
+        return;
+    }
+    grid.innerHTML = fabricData.map(fab => {
+        const bg      = fab.color || "#2a3a4a";
+        const fg      = contrastColor(fab.color);
+        const allDone = fab.cut === fab.total && fab.total > 0;
+        const progCls = allDone ? "done" : "";
+        const selCls  = fab.code === selectedFabric ? " selected" : "";
+        const doneCls = allDone ? " done" : "";
+        return `<div class="color-tile${selCls}${doneCls}"
+                     style="background:${bg};color:${fg}"
+                     onclick="selectFabric('${fab.code}')">
+            <span class="ct-code">${fab.code}</span>
+            <span class="ct-name">${fab.name}</span>
+            <span class="ct-progress ${progCls}">${allDone ? "✓ done" : `${fab.cut}/${fab.total}`}</span>
+        </div>`;
+    }).join("");
+}
+
+function selectFabric(code) {
+    selectedFabric = code;
+    // Update selected tile highlight without full re-render
+    document.querySelectorAll(".color-tile").forEach(el => el.classList.remove("selected"));
+    const tiles = document.querySelectorAll(".color-tile");
+    fabricData.forEach((fab, i) => {
+        if (fab.code === code) tiles[i]?.classList.add("selected");
+    });
+    const fab = fabricData.find(f => f.code === code);
+    if (fab) renderFabricDetail(fab);
+}
+
+function renderFabricDetail(fab) {
+    const panel = document.getElementById("detail-panel");
+    const bg    = fab.color || "#2a3a4a";
+    const fg    = contrastColor(fab.color);
+    const allDone = fab.cut === fab.total && fab.total > 0;
+
+    const rows = fab.segments.map(seg => {
+        const doneCls = seg.cut ? " seg-done" : "";
+        return `<li class="fabric-seg-item${doneCls}">
+            <input type="checkbox" ${seg.cut ? "checked" : ""}
+                onchange="checkFabricSegment('${fab.code}','${seg.block_id}','${seg.frag_id}',this.checked)">
+            <span class="seg-label">${seg.frag_id}</span>
+            <span class="seg-block">${seg.block_id}</span>
+        </li>`;
+    }).join("");
+
+    panel.innerHTML = `
+        <div class="fabric-detail-header" style="background:${bg};color:${fg};padding:14px 16px;border-radius:6px;margin-bottom:12px">
+            <div style="font-size:1.6rem;font-weight:bold;line-height:1">${fab.code}</div>
+            <div style="font-size:0.9rem;opacity:0.85">${fab.name}</div>
+            <div style="font-size:0.8rem;margin-top:4px">${fab.sku ? "SKU " + fab.sku + " · " : ""}${fab.size || ""}</div>
+        </div>
+        <div style="margin-bottom:10px;font-size:0.9rem;color:${allDone ? "#4caf50" : "#ccc"}">
+            ${allDone ? "✓ All segments cut" : `${fab.cut} of ${fab.total} segments cut`}
+        </div>
+        <ul class="fabric-seg-list">${rows}</ul>`;
+}
+
+async function checkFabricSegment(code, block_id, frag_id, checked) {
+    // Update local cache immediately
+    const fab = fabricData.find(f => f.code === code);
+    if (fab) {
+        const seg = fab.segments.find(s => s.block_id === block_id && s.frag_id === frag_id);
+        if (seg) seg.cut = checked;
+        fab.cut = fab.segments.filter(s => s.cut).length;
+        // Update tile counter
+        const tiles = document.querySelectorAll(".color-tile");
+        fabricData.forEach((f, i) => {
+            if (f.code === code) {
+                const tile = tiles[i];
+                if (tile) {
+                    const allDone = f.cut === f.total && f.total > 0;
+                    tile.querySelector(".ct-progress").textContent = allDone ? "✓ done" : `${f.cut}/${f.total}`;
+                    tile.querySelector(".ct-progress").className = "ct-progress" + (allDone ? " done" : "");
+                    tile.classList.toggle("done", allDone);
+                }
+            }
+        });
+    }
+
+    // Post to server
+    const res = await fetch("/api/progress" + qp(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ block_id, fragment_id: frag_id, field: "cut", value: checked }),
+    });
+    const data = await res.json();
+    renderStats(data.stats);
+
+    // Keep detail panel current
+    if (fab) renderFabricDetail(fab);
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────

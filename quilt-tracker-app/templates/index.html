@@ -20,6 +20,10 @@
         {% endif %}
     </div>
     <span id="start-date" class="start-date"></span>
+    <div class="view-toggle">
+        <button class="view-toggle-btn active" id="btn-view-quilt"  onclick="switchView('quilt')">Quilt</button>
+        <button class="view-toggle-btn"        id="btn-view-colors" onclick="switchView('colors')">Colors</button>
+    </div>
     <div class="stats-bar">
         <div class="stat complete">
             <span class="val" id="stat-complete">—</span>
@@ -41,8 +45,11 @@
 </header>
 
 <main>
-    <div class="quilt-wrap">
+    <div class="quilt-wrap" id="quilt-wrap">
         <div id="quilt-grid"></div>
+    </div>
+    <div class="color-grid-wrap" id="color-grid-wrap">
+        <div id="color-grid"></div>
     </div>
     <div class="detail-panel" id="detail-panel">
         <h2>Block Detail</h2>

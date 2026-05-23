@@ -618,6 +618,61 @@ def api_archive():
     return send_file(buf, mimetype="application/zip", as_attachment=True, download_name=filename)
 
 
+@app.route("/api/fabrics")
+def api_fabrics():
+    quilt_id = get_active_quilt()
+    if not quilt_id:
+        return jsonify({"error": "No quilts found"}), 404
+
+    pattern  = get_quilt_data(quilt_id)["pattern"]
+    progress = load_progress(quilt_id)
+
+    colors_path = QUILTS_DIR / quilt_id / "fabric_colors.json"
+    colors = json.loads(colors_path.read_text(encoding="utf-8")) if colors_path.exists() else {}
+
+    def frag_for_template(template, fragments):
+        for frag in fragments:
+            if template == frag:
+                return frag
+            if template.startswith(frag) and len(template) > len(frag) and template[len(frag)].islower():
+                return frag
+        return None
+
+    # Collect unique (block_id, frag_id) per fabric, preserving pattern order
+    seen_pairs: dict[str, set] = defaultdict(set)
+    frag_cut: dict = {}
+
+    for block_id, block in pattern["blocks"].items():
+        bp = progress.get(block_id, {})
+        for piece in block["pieces"]:
+            code    = piece["fabric_code"]
+            frag_id = frag_for_template(piece["template"], block["fragments"])
+            if frag_id:
+                key = (block_id, frag_id)
+                if key not in seen_pairs[code]:
+                    seen_pairs[code].add(key)
+                    fp = bp.get(frag_id, {})
+                    frag_cut[key] = bool(fp.get("cut")) if isinstance(fp, dict) else False
+
+    result = []
+    for code, fab in pattern["fabrics"].items():
+        pairs = sorted(seen_pairs.get(code, set()))
+        segs  = [{"block_id": b, "frag_id": f, "cut": frag_cut.get((b, f), False)} for b, f in pairs]
+        result.append({
+            "code":     code,
+            "name":     fab["name"],
+            "sku":      fab.get("sku", ""),
+            "size":     fab.get("size", ""),
+            "color":    colors.get(code),
+            "segments": segs,
+            "total":    len(segs),
+            "cut":      sum(1 for s in segs if s["cut"]),
+        })
+
+    result.sort(key=lambda f: f["code"])
+    return jsonify(result)
+
+
 @app.route("/api/progress/reset", methods=["POST"])
 def api_reset():
     quilt_id = get_active_quilt()

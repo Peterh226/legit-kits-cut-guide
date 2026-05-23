@@ -11,7 +11,7 @@ Usage:
 
 Options:
     --quilt-id ID       Quilt identifier (default: lowercased folder name)
-    --stage STAGE       Which stage to run: cut, assy, overview, all (default: all)
+    --stage STAGE       Which stage to run: cut, assy, overview, colors, all (default: all)
     --resume            Skip already-processed pages in the staging file
     --page N            Process only page N (1-based)
     --pages START-END   Process a range of pages, e.g. --pages 5-10
@@ -25,9 +25,10 @@ Output (written to quilts/<quilt-id>/):
     assembly_data.py        Block -> fragment mapping
     assembly_guide.json     Visual assembly data
     cut_guide_data.py       All piece rows
+    fabric_colors.json      Approximate hex color per fabric code (from --stage colors)
 
 Staging files (quilts/<quilt-id>/, one per stage):
-    overview_raw.json / assy_raw.json / assy_visual_raw.json / cut_raw.json
+    overview_raw.json / assy_raw.json / assy_visual_raw.json / cut_raw.json / colors_raw.json
     Each is a dict keyed by image filename; each value has status, data, warnings.
     Re-running with --resume skips entries already marked ok or warning.
     Re-running with --page N or --pages START-END overwrites just those entries.
@@ -670,6 +671,83 @@ def run_cut(
 
 
 # ---------------------------------------------------------------------------
+# Stage: colors
+# ---------------------------------------------------------------------------
+
+COLORS_PROMPT = """\
+This is a Color Guide page from a Legit Kits quilt pattern.
+Each row shows a fabric with its short code (like "AA", "DF", "LQ"), a colored swatch \
+rectangle, and the fabric name.
+
+For every fabric on this page, look at its colored swatch and return the approximate \
+display color as a CSS hex code.
+
+Return ONLY a JSON object mapping fabric code to hex color. Example:
+{"AA": "#8B2E1F", "DF": "#FFC107", "CZ": "#F5EDD6"}
+
+Guidelines:
+- Match the dominant mid-tone of the swatch, not highlights or shadows
+- For very dark / near-black fabrics use "#1a1a1a"
+- For white / near-white fabrics use "#f0f0f0"
+- If a code's swatch is unclear or ambiguous, omit it rather than guess
+- Do not include any text outside the JSON object
+"""
+
+
+def run_colors(
+    client: anthropic.Anthropic,
+    overview_folder: Path,
+    overview_staging_path: Path,
+    out_dir: Path,
+    resume: bool,
+    dry_run: bool,
+) -> dict[str, str]:
+    overview_staging = load_staging(overview_staging_path)
+    color_guide_imgs: list[tuple[str, Path]] = []
+    for img_name, v in overview_staging.items():
+        data = v.get("data", {})
+        doc_type = data.get("document_type", "") if isinstance(data, dict) else ""
+        if "Color Guide" in doc_type:
+            img_path = overview_folder / img_name
+            if img_path.exists():
+                color_guide_imgs.append((img_name, img_path))
+
+    if not color_guide_imgs:
+        print("  [colors] No Color Guide pages found in overview staging — run overview stage first")
+        return {}
+
+    print(f"  [colors] Found {len(color_guide_imgs)} Color Guide pages")
+    colors_staging_path = out_dir / "colors_raw.json"
+    staging = load_staging(colors_staging_path)
+
+    for img_name, img_path in color_guide_imgs:
+        if _should_skip(staging, img_name, resume):
+            print(f"  [colors] Skip {img_name}")
+            continue
+        print(f"  [colors] {img_name} ...", end=" ", flush=True)
+        try:
+            raw  = call_claude(client, img_path, COLORS_PROMPT)
+            data = _parse_json(raw, img_name)
+            if not isinstance(data, dict):
+                staging[img_name] = {"status": "error", "error": "Response is not a dict", "raw": raw[:500], "ts": _ts()}
+                print("ERROR: not a dict")
+            else:
+                staging[img_name] = {"status": "ok", "data": data, "ts": _ts()}
+                print(f"{len(data)} colors")
+        except Exception as e:
+            staging[img_name] = {"status": "error", "error": str(e), "ts": _ts()}
+            print(f"ERROR: {e}")
+        if not dry_run:
+            save_staging(colors_staging_path, staging)
+
+    merged: dict[str, str] = {}
+    for v in staging.values():
+        if v.get("status") in ("ok", "warning") and isinstance(v.get("data"), dict):
+            merged.update(v["data"])
+    return merged
+
+
+# ---------------------------------------------------------------------------
 # Write output files
 # ---------------------------------------------------------------------------
 
@@ -737,7 +815,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Extract Legit Kits pattern data via Claude vision API")
     parser.add_argument("pattern_folder", help="Folder with cut/, assy/, overview/ subfolders")
     parser.add_argument("--quilt-id",  help="Quilt identifier (default: lowercased folder name)")
-    parser.add_argument("--stage",     choices=["cut", "assy", "overview", "all"], default="all")
+    parser.add_argument("--stage",     choices=["cut", "assy", "overview", "colors", "all"], default="all")
     parser.add_argument("--resume",    action="store_true", help="Skip already-processed pages")
     parser.add_argument("--page",      type=int,  help="Process only this page (1-based)")
     parser.add_argument("--pages",     help="Process page range e.g. 5-10")
@@ -840,6 +918,15 @@ def main() -> None:
                 rows = sorted(kept + new_rows, key=lambda r: (int(r.get("page") or 0), int(r.get("piece_num") or 0)))
             write_cut_guide_data(rows, out_path)
 
+    if args.stage in ("colors", "all") and overview_folder.is_dir():
+        print("\n=== Colors ===")
+        colors = run_colors(client, overview_folder, overview_staging_path, out_dir,
+                            args.resume, args.dry_run)
+        if colors and not args.dry_run:
+            colors_out = out_dir / "fabric_colors.json"
+            colors_out.write_text(json.dumps(colors, indent=2, sort_keys=True), encoding="utf-8")
+            print(f"Wrote fabric_colors.json ({len(colors)} colors)")
+
     if not args.dry_run and not args.page and not args.pages and args.stage == "all":
         print("\n=== Running generate.py ===")
         subprocess.run([sys.executable, "generate.py", "--quilt-id", quilt_id], check=False)
@@ -890,7 +977,7 @@ def _update_config_grid(out_dir: Path, grid_rows: str, grid_cols: int, grid_layo
 
 
 def _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis_path, overview_staging_path,
-              grid_rows: str = "ABCDEFGH", grid_cols: int = 8):
+              grid_rows: str = "ABCDEFGH", grid_cols: int = 8):  # noqa: E501
     overview_staging_path_obj = Path(overview_staging_path)
     if overview_staging_path_obj.exists():
         staging = load_staging(overview_staging_path_obj)
@@ -916,6 +1003,19 @@ def _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis
                 rows.extend(v["data"])
         if rows:
             write_cut_guide_data(rows, out_dir / "cut_guide_data.py")
+
+    colors_staging = Path(out_dir) / "colors_raw.json"
+    if colors_staging.exists():
+        staging = load_staging(colors_staging)
+        merged: dict[str, str] = {}
+        for v in staging.values():
+            if v.get("status") in ("ok", "warning") and isinstance(v.get("data"), dict):
+                merged.update(v["data"])
+        if merged:
+            (Path(out_dir) / "fabric_colors.json").write_text(
+                json.dumps(merged, indent=2, sort_keys=True), encoding="utf-8"
+            )
+            print(f"Finalized fabric_colors.json ({len(merged)} colors)")
 
 
 if __name__ == "__main__":
