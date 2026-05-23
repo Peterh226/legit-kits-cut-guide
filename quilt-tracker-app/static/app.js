@@ -988,7 +988,10 @@ async function checkFabricSegment(code, block_id, frag_id, checked) {
         body: JSON.stringify({ block_id, fragment_id: frag_id, field: "cut", value: checked }),
     });
     const data = await res.json();
+    if (patternData) patternData.stats = data.stats;
     renderStats(data.stats);
+    const el = document.getElementById(`block-${block_id}`);
+    if (el) el.className = `block ${data.status}${selectedBlocks.has(block_id) ? " selected" : ""}`;
 
     // Keep detail panel current
     if (fab) renderFabricDetail(fab);
