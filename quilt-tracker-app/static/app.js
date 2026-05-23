@@ -591,6 +591,29 @@ async function checkPiece(block_id, frag_id, piece_num, checked) {
         body: JSON.stringify({ block_id, frag_id, piece_num, checked }),
     });
 
+    // Auto-cascade: flip segment cut status when all pieces become checked or any becomes unchecked
+    const block = (currentBlocks[block_id] && currentBlocks[block_id].block) || currentBlock;
+    if (block) {
+        const frag = block.fragments.find(f => f.id === frag_id);
+        if (frag) {
+            const fragPieces = (block.pieces || []).filter(p => matchesFrag(p.template, frag_id));
+            const fragMap = (pieceChecks[block_id] || {})[frag_id] || {};
+            const allPiecesCut = fragPieces.length > 0 &&
+                fragPieces.every(p => fragMap[`${p.fabric_code}_${p.piece_num}`]);
+
+            if (allPiecesCut && !frag.cut) {
+                await updateProgress(block_id, frag_id, "cut", true);
+                await loadDetail();
+                return;
+            }
+            if (!checked && frag.cut) {
+                await updateProgress(block_id, frag_id, "cut", false);
+                await loadDetail();
+                return;
+            }
+        }
+    }
+
     if (selectedBlocks.size > 1) {
         document.getElementById("tab-cut").innerHTML     = renderMultiCutTab();
         document.getElementById("tab-fabrics").innerHTML = renderMultiFabricsTab();
@@ -704,6 +727,12 @@ async function checkSewingStep(block_id, step_index, checked) {
     if (allDone) {
         for (const f of currentBlock.fragments) {
             await updateProgress(block_id, f.id, "assembled", true);
+        }
+        await loadDetail();
+    } else if (!checked && currentBlock.fragments.some(f => f.assembled)) {
+        // Unchecking a step when block was already assembled — cascade unmark
+        for (const f of currentBlock.fragments) {
+            if (f.assembled) await updateProgress(block_id, f.id, "assembled", false);
         }
         await loadDetail();
     } else {
