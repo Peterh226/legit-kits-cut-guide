@@ -1,4 +1,7 @@
 {
   "quilt_name": "Skulliver",
-  "start_date": "2026-04-29"
+  "start_date": "2026-04-29",
+  "grid_rows": "ABCDEFGH",
+  "grid_cols": 8,
+  "grid_layout": "row_letters"
 }

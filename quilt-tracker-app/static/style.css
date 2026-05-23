@@ -8,6 +8,13 @@ body {
 }
 
 /* ── Header ── */
+.header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
 header {
     background: #16213e;
     border-bottom: 2px solid #0f3460;
@@ -26,20 +33,17 @@ header h1 {
 }
 
 #reset-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 100;
     background: transparent;
-    border: 1px solid #e94560;
-    color: #e94560;
+    border: 1px solid #444;
+    color: #666;
     padding: 4px 12px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.75rem;
     letter-spacing: 0.5px;
+    margin-left: auto;
 }
-#reset-btn:hover { background: #e94560; color: #fff; }
+#reset-btn:hover { border-color: #e94560; color: #e94560; }
 
 /* ── Reset/Archive modal ── */
 #reset-modal {
@@ -123,8 +127,7 @@ header h1 {
     max-height: calc(100vh - 160px);
 }
 .color-grid-wrap.active { display: block; }
-.quilt-wrap.active { display: block; }
-.quilt-wrap { display: none; }
+.quilt-wrap.active      { display: block; }
 
 #color-grid {
     display: grid;
@@ -210,6 +213,7 @@ main {
 
 /* ── Quilt grid ── */
 .quilt-wrap {
+    display: none;
     flex: 0 0 auto;
     padding: 12px;
     border-radius: 8px;

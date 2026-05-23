@@ -18,6 +18,7 @@
             {% endfor %}
         </select>
         {% endif %}
+        <button id="reset-btn" onclick="showResetModal()">Reset&hellip;</button>
     </div>
     <span id="start-date" class="start-date"></span>
     <div class="view-toggle">
@@ -71,8 +72,6 @@
         <span>Complete</span>
     </div>
 </div>
-
-<button id="reset-btn" onclick="showResetModal()">Reset&hellip;</button>
 
 <div id="reset-modal">
     <div class="modal-overlay" onclick="closeResetModal()"></div>

@@ -1,4 +1,7 @@
 {
   "quilt_name": "Land of the Free",
-  "start_date": "2026-04-19"
+  "start_date": "2026-04-19",
+  "grid_rows": "ABCDEFGH",
+  "grid_cols": 8,
+  "grid_layout": "row_letters"
 }
