@@ -665,16 +665,20 @@ function refreshBlockSummary(block) {
 
 function renderAssembleTab(block, assy) {
     const allCut = block.fragments.every(f => f.cut);
-    if (!allCut) {
-        return `<p class="tab-hint">Mark all segments as ready in the Segments tab first.</p>`;
-    }
+    const nReady = block.fragments.filter(f => f.cut).length;
+    const total  = block.fragments.length;
+
+    const notReadyNote = !allCut
+        ? `<p class="tab-hint assy-not-ready">${nReady}/${total} segments ready — checkboxes enabled once all segments are cut.</p>`
+        : "";
 
     if (!assy || !assy.sewing_sequence || !assy.sewing_sequence.length) {
         const f = block.fragments[0];
         return `
+            ${notReadyNote}
             <div class="sewing-checklist">
                 <div class="sewing-check-row ${f.assembled ? "step-done" : ""}">
-                    <input type="checkbox" ${f.assembled ? "checked" : ""}
+                    <input type="checkbox" ${f.assembled ? "checked" : ""} ${!allCut ? "disabled" : ""}
                         onchange="updateProgress('${block.id}','${f.id}','assembled',this.checked)">
                     <span class="sc-num">1</span>
                     <span class="sc-text">Block assembled</span>
@@ -682,10 +686,10 @@ function renderAssembleTab(block, assy) {
             </div>`;
     }
 
-    return renderAssyDiagram(assy, block);
+    return notReadyNote + renderAssyDiagram(assy, block, allCut);
 }
 
-function renderAssyDiagram(assy, block) {
+function renderAssyDiagram(assy, block, allCut = true) {
     const blockChecks = sewingChecks[block.id] || {};
     const steps = assy.sewing_sequence;
     const total = steps.length;
@@ -705,7 +709,7 @@ function renderAssyDiagram(assy, block) {
         const done = !!blockChecks[String(i)];
         return `
             <div class="sewing-check-row ${done ? "step-done" : ""}">
-                <input type="checkbox" ${done ? "checked" : ""}
+                <input type="checkbox" ${done ? "checked" : ""} ${!allCut ? "disabled" : ""}
                     onchange="checkSewingStep('${block.id}',${i},this.checked)">
                 <span class="sc-num">${i + 1}</span>
                 <span class="sc-text">${s}</span>
