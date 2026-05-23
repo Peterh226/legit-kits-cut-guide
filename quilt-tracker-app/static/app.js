@@ -121,6 +121,15 @@ function renderStats(stats) {
     document.getElementById("stat-progress").textContent  = stats.in_progress;
     document.getElementById("stat-remaining").textContent = stats.not_started;
     document.getElementById("stat-pct").textContent       = stats.pct_complete + "%";
+    if (stats.total_segments != null)
+        document.getElementById("stat-segs").textContent = `${stats.segments_cut}/${stats.total_segments}`;
+}
+
+function renderColorStats() {
+    if (!fabricData.length) return;
+    const done  = fabricData.filter(f => f.cut === f.total && f.total > 0).length;
+    const total = fabricData.length;
+    document.getElementById("stat-colors").textContent = `${done}/${total}`;
 }
 
 // ── Quilt grid ────────────────────────────────────────────────────────────
@@ -864,6 +873,7 @@ async function doArchiveAndReset() {
 async function loadFabrics() {
     const res = await fetch("/api/fabrics" + qp());
     fabricData = await res.json();
+    renderColorStats();
     if (activeView === "colors") renderColorGrid();
 }
 
@@ -932,19 +942,35 @@ function selectFabric(code) {
 }
 
 function renderFabricDetail(fab) {
-    const panel = document.getElementById("detail-panel");
-    const bg    = fab.color || "#2a3a4a";
-    const fg    = contrastColor(fab.color);
+    const panel   = document.getElementById("detail-panel");
+    const bg      = fab.color || "#2a3a4a";
+    const fg      = contrastColor(fab.color);
     const allDone = fab.cut === fab.total && fab.total > 0;
 
-    const rows = fab.segments.map(seg => {
-        const doneCls = seg.cut ? " seg-done" : "";
-        return `<li class="fabric-seg-item${doneCls}">
-            <input type="checkbox" ${seg.cut ? "checked" : ""}
-                onchange="checkFabricSegment('${fab.code}','${seg.block_id}','${seg.frag_id}',this.checked)">
-            <span class="seg-label">${seg.frag_id}</span>
-            <span class="seg-block">${seg.block_id}</span>
-        </li>`;
+    // Group segments by block
+    const byBlock = {};
+    for (const seg of fab.segments) {
+        if (!byBlock[seg.block_id]) byBlock[seg.block_id] = [];
+        byBlock[seg.block_id].push(seg);
+    }
+
+    const blocks = Object.entries(byBlock).sort(([a], [b]) => a.localeCompare(b)).map(([block_id, segs]) => {
+        const done  = segs.filter(s => s.cut).length;
+        const total = segs.length;
+        const rows  = segs.map(seg => `
+            <div class="piece-check-row${seg.cut ? " seg-done" : ""}">
+                <input type="checkbox" ${seg.cut ? "checked" : ""}
+                    onchange="checkFabricSegment('${fab.code}','${seg.block_id}','${seg.frag_id}',this.checked)">
+                <span class="pc-tmpl">${seg.frag_id}</span>
+            </div>`).join("");
+        return `
+            <div class="fabric-group ${done === total ? "fabric-done" : ""}">
+                <div class="fabric-group-header">
+                    <span class="fabric-code">${block_id}</span>
+                    <span class="fabric-tally">${done}/${total}</span>
+                </div>
+                <div class="frag-piece-list">${rows}</div>
+            </div>`;
     }).join("");
 
     panel.innerHTML = `
@@ -953,10 +979,10 @@ function renderFabricDetail(fab) {
             <div style="font-size:0.9rem;opacity:0.85">${fab.name}</div>
             <div style="font-size:0.8rem;margin-top:4px">${fab.sku ? "SKU " + fab.sku + " · " : ""}${fab.size || ""}</div>
         </div>
-        <div style="margin-bottom:10px;font-size:0.9rem;color:${allDone ? "#4caf50" : "#ccc"}">
+        <div style="margin-bottom:12px;font-size:0.9rem;color:${allDone ? "#4caf50" : "#ccc"}">
             ${allDone ? "✓ All segments cut" : `${fab.cut} of ${fab.total} segments cut`}
         </div>
-        <ul class="fabric-seg-list">${rows}</ul>`;
+        <div class="fabric-list">${blocks}</div>`;
 }
 
 async function checkFabricSegment(code, block_id, frag_id, checked) {
@@ -990,6 +1016,7 @@ async function checkFabricSegment(code, block_id, frag_id, checked) {
     const data = await res.json();
     if (patternData) patternData.stats = data.stats;
     renderStats(data.stats);
+    renderColorStats();
     const el = document.getElementById(`block-${block_id}`);
     if (el) el.className = `block ${data.status}${selectedBlocks.has(block_id) ? " selected" : ""}`;
 

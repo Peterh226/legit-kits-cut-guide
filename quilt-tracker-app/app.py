@@ -204,12 +204,21 @@ def build_stats(pattern, progress):
     total = len(statuses)
     complete = statuses.count("complete")
     in_progress = statuses.count("in_progress")
+    total_segments = sum(len(pattern["blocks"][b]["fragments"]) for b in pattern["blocks"])
+    segments_cut   = sum(
+        1
+        for b in pattern["blocks"]
+        for f in pattern["blocks"][b]["fragments"]
+        if progress.get(b, {}).get(f, {}).get("cut", False)
+    )
     return {
-        "total":        total,
-        "complete":     complete,
-        "in_progress":  in_progress,
-        "not_started":  total - complete - in_progress,
-        "pct_complete": round(complete / total * 100) if total else 0,
+        "total":          total,
+        "complete":       complete,
+        "in_progress":    in_progress,
+        "not_started":    total - complete - in_progress,
+        "pct_complete":   round(complete / total * 100) if total else 0,
+        "total_segments": total_segments,
+        "segments_cut":   segments_cut,
     }
 
 
