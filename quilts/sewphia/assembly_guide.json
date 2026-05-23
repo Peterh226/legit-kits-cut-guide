@@ -1259,8 +1259,8 @@
     "circles": [
       {
         "fragment_id": "C4a",
-        "cx": 19,
-        "cy": 16
+        "cx": 21,
+        "cy": 17
       },
       {
         "fragment_id": "C4f",
@@ -1270,47 +1270,47 @@
       {
         "fragment_id": "C4c",
         "cx": 14,
-        "cy": 43
+        "cy": 42
       },
       {
         "fragment_id": "C4d",
         "cx": 16,
-        "cy": 49
+        "cy": 48
       },
       {
         "fragment_id": "C4b",
-        "cx": 25,
-        "cy": 45
+        "cx": 24,
+        "cy": 44
       },
       {
         "fragment_id": "C4e",
-        "cx": 24,
-        "cy": 50
-      },
-      {
-        "fragment_id": "C4k",
-        "cx": 41,
-        "cy": 42
-      },
-      {
-        "fragment_id": "C4g",
-        "cx": 36,
-        "cy": 51
-      },
-      {
-        "fragment_id": "C4j",
-        "cx": 41,
+        "cx": 23,
         "cy": 49
       },
       {
+        "fragment_id": "C4g",
+        "cx": 38,
+        "cy": 50
+      },
+      {
         "fragment_id": "C4h",
-        "cx": 39,
-        "cy": 54
+        "cx": 41,
+        "cy": 52
       },
       {
         "fragment_id": "C4i",
+        "cx": 37,
+        "cy": 47
+      },
+      {
+        "fragment_id": "C4j",
         "cx": 42,
-        "cy": 53
+        "cy": 47
+      },
+      {
+        "fragment_id": "C4k",
+        "cx": 44,
+        "cy": 40
       }
     ],
     "sewing_sequence": [
@@ -1337,38 +1337,38 @@
     "circles": [
       {
         "fragment_id": "D1c",
-        "cx": 75,
+        "cx": 78,
         "cy": 14
       },
       {
         "fragment_id": "D1e",
-        "cx": 76,
-        "cy": 19
+        "cx": 80,
+        "cy": 18
       },
       {
         "fragment_id": "D1g",
         "cx": 84,
-        "cy": 30
+        "cy": 33
       },
       {
         "fragment_id": "D1a",
         "cx": 64,
-        "cy": 36
+        "cy": 31
       },
       {
         "fragment_id": "D1b",
-        "cx": 70,
-        "cy": 30
+        "cx": 72,
+        "cy": 25
       },
       {
         "fragment_id": "D1d",
-        "cx": 71,
+        "cx": 70,
         "cy": 49
       },
       {
         "fragment_id": "D1f",
         "cx": 76,
-        "cy": 50
+        "cy": 49
       }
     ],
     "sewing_sequence": [
