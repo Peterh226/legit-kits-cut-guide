@@ -12,7 +12,8 @@ let pieceChecks  = {};     // {block_id: {frag_id: {piece_num_str: bool}}}
 let sewingChecks = {};     // {block_id: {step_index_str: bool}}
 let activeQuilt  = null;   // current quilt id
 let excelFiles   = [];     // cached list of xlsx files
-let gridView     = "finished"; // "finished" | "pattern"
+let gridView       = "finished"; // "finished" | "pattern"
+let multiSelectMode = false;    // true when Select Multiple button is active
 
 // ── Quilt helpers ─────────────────────────────────────────────────────────
 
@@ -37,7 +38,8 @@ function switchQuilt(quiltId) {
     activeFrag    = null;
     pieceChecks   = {};
     sewingChecks  = {};
-    gridView      = "finished";
+    gridView       = "finished";
+    multiSelectMode = false;
     init();
 }
 
@@ -135,7 +137,9 @@ function renderGrid(grid) {
     toggleDiv.className = "grid-view-toggle";
     toggleDiv.innerHTML =
         `<button class="view-btn${!isPattern ? " active" : ""}" onclick="setGridView('finished')">Finished</button>` +
-        `<button class="view-btn${isPattern  ? " active" : ""}" onclick="setGridView('pattern')">Pattern Side</button>`;
+        `<button class="view-btn${isPattern  ? " active" : ""}" onclick="setGridView('pattern')">Pattern Side</button>` +
+        `<button class="view-btn${multiSelectMode ? " multi-active" : ""}" onclick="toggleMultiSelect()">` +
+        `${multiSelectMode ? "✓ Multi Select" : "Select Multiple"}</button>`;
     container.appendChild(toggleDiv);
 
     const labelRow = document.createElement("div");
@@ -203,10 +207,21 @@ function setGridView(view) {
     renderGrid(patternData.grid);
 }
 
+function toggleMultiSelect() {
+    multiSelectMode = !multiSelectMode;
+    // Turning off: collapse to just the active block
+    if (!multiSelectMode && selectedBlocks.size > 1) {
+        const keep = selectedBlock;
+        selectedBlocks.clear();
+        if (keep) selectedBlocks.add(keep);
+    }
+    renderGrid(patternData.grid);
+}
+
 // ── Block selection ───────────────────────────────────────────────────────
 
 async function selectBlock(block_id, event) {
-    const multi = event && (event.ctrlKey || event.metaKey || event.shiftKey);
+    const multi = multiSelectMode || (event && (event.ctrlKey || event.metaKey || event.shiftKey));
 
     if (multi) {
         // Ctrl/Cmd/Shift+click: toggle this block in the selection

@@ -147,7 +147,8 @@ main {
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .view-btn:hover  { color: #ccc; border-color: #666; }
-.view-btn.active { color: #e94560; border-color: #e94560; background: rgba(233,69,96,0.1); }
+.view-btn.active      { color: #e94560; border-color: #e94560; background: rgba(233,69,96,0.1); }
+.view-btn.multi-active { color: #90caf9; border-color: #90caf9; background: rgba(144,202,249,0.12); }
 
 .quilt-block-row {
     display: grid;
