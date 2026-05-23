@@ -142,6 +142,52 @@ running the assy stage.
 - `tracking.py` → Tracker xlsx (6 sheets including block completion checklist)
 - `lint.py` — validates `cut_guide_data.py` for duplicate/missing pieces
 
+## How to Add a New Quilt
+
+1. **Scan the quilt** — scan all pages into JPGs organized into three subfolders:
+   ```
+   C:\Users\peter\OneDrive - heathprof.com\Quilting\Scans\<quilt-name>\
+       overview\   ← overview/grid photos
+       cut\        ← cut guide pages
+       assy\       ← assembly guide pages
+   ```
+
+2. **Run extract.py** (from the repo root, on a machine with `ANTHROPIC_API_KEY` set):
+   ```bash
+   python extract.py "C:\Users\peter\OneDrive - heathprof.com\Quilting\Scans\<quilt-name>"
+   ```
+   This auto-derives the quilt ID from the folder name and generates:
+   - `quilts/<id>/config.json` — grid dimensions, quilt name, layout settings
+   - `quilts/<id>/cut_guide_data.py` — fabric/piece cutting data
+   - `quilts/<id>/assembly_data.py` — assembly sequence data
+   - `quilts/<id>/assembly_guide.json` — visual assembly guide
+   - `quilts/<id>/quilt_overview.jpg` — copied from overview_001.jpg (replace if needed)
+   - `quilts/<id>/assy/assy_NNN.jpg` — assembly step photos
+   - Staging files (`cut_raw.json`, etc.) and Excel QA files
+
+3. **Validate** — review the generated Excel files, run lint:
+   ```bash
+   python lint.py
+   ```
+   Use `--page` / `--pages` / `--resume` options to fix any problem pages, then `--finalize`.
+
+4. **Adjust config.json if needed** — check `grid_layout` (`row_letters` vs `col_letters`) and `block_orientation` (`portrait` vs `landscape`). See Configuration section below.
+
+5. **Commit and push:**
+   ```bash
+   git add quilts/<id>/
+   git commit -m "Add <quilt-name> quilt data"
+   git push
+   ```
+
+6. **Deploy on the Pi:**
+   ```bash
+   cd ~/legit-kits-cut-guide && git pull && pm2 restart quilttracker
+   ```
+   The new quilt is auto-discovered from the `quilts/` folder — no code changes needed. It will appear immediately in the quilt selector in the UI.
+
+---
+
 ## Deployment on Raspberry Pi
 
 The app runs on the same RPi 4 as HomeTempDashboard (port 3001 vs 3000), managed by pm2.
