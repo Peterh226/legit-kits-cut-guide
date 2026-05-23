@@ -12,10 +12,13 @@ Access at http://<pi-ip>:3001
 """
 
 import argparse
+import io
 import json
 import subprocess
 import sys
+import zipfile
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, request, render_template, send_file
@@ -341,11 +344,18 @@ def api_update_progress():
     if block_id not in pattern["blocks"]:
         return jsonify({"error": "Unknown block"}), 404
 
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     progress = load_progress(quilt_id)
     progress.setdefault(block_id, {}).setdefault(frag_id, {})
     progress[block_id][frag_id][field] = value
+    if value:
+        progress[block_id][frag_id][field + "_at"] = now
+    else:
+        progress[block_id][frag_id].pop(field + "_at", None)
     if field == "assembled" and value:
         progress[block_id][frag_id]["cut"] = True
+        if "cut_at" not in progress[block_id][frag_id]:
+            progress[block_id][frag_id]["cut_at"] = now
     save_progress(quilt_id, progress)
     return jsonify({
         "status": compute_block_status(block_id, pattern, progress),
@@ -425,6 +435,187 @@ def api_excel_download(filename):
             resp.headers["Cache-Control"] = "no-store"
             return resp
     return "", 404
+
+
+def build_archive_summary(quilt_id):
+    pattern       = get_quilt_data(quilt_id)["pattern"]
+    progress      = load_progress(quilt_id)
+    piece_progress = load_piece_progress(quilt_id)
+
+    total_blocks      = len(pattern["blocks"])
+    blocks_complete   = sum(1 for b in pattern["blocks"] if compute_block_status(b, pattern, progress) == "complete")
+    blocks_in_progress = sum(1 for b in pattern["blocks"] if compute_block_status(b, pattern, progress) == "in_progress")
+
+    total_segments    = sum(len(b["fragments"]) for b in pattern["blocks"].values())
+    segments_cut      = sum(1 for bp in progress.values() for fp in bp.values() if isinstance(fp, dict) and fp.get("cut"))
+    segments_assembled = sum(1 for bp in progress.values() for fp in bp.values() if isinstance(fp, dict) and fp.get("assembled"))
+
+    total_pieces   = sum(len(b["pieces"]) for b in pattern["blocks"].values())
+    pieces_checked = sum(
+        1 for block_checks in piece_progress.values()
+        for frag_checks in block_checks.values()
+        for v in frag_checks.values() if v
+    )
+
+    # Collect timestamps from progress.json
+    cut_by_date = defaultdict(int)
+    assy_by_date = defaultdict(int)
+    all_timestamps = []
+    for bp in progress.values():
+        for fp in bp.values():
+            if not isinstance(fp, dict):
+                continue
+            if fp.get("cut_at"):
+                d = fp["cut_at"][:10]
+                cut_by_date[d] += 1
+                all_timestamps.append(fp["cut_at"])
+            if fp.get("assembled_at"):
+                d = fp["assembled_at"][:10]
+                assy_by_date[d] += 1
+                all_timestamps.append(fp["assembled_at"])
+
+    summary = {
+        "quilt_name":   pattern["name"],
+        "start_date":   pattern["start_date"],
+        "archive_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "blocks":    {"total": total_blocks, "complete": blocks_complete,
+                      "in_progress": blocks_in_progress,
+                      "not_started": total_blocks - blocks_complete - blocks_in_progress},
+        "segments":  {"total": total_segments, "cut": segments_cut, "assembled": segments_assembled},
+        "pieces":    {"total": total_pieces, "checked": pieces_checked},
+        "timeline":  None,
+    }
+
+    if all_timestamps:
+        all_timestamps.sort()
+        first_ts = all_timestamps[0]
+        last_ts  = all_timestamps[-1]
+        all_dates = sorted(set(t[:10] for t in all_timestamps))
+        active_days = len(all_dates)
+        first_date = datetime.strptime(first_ts[:10], "%Y-%m-%d")
+        last_date  = datetime.strptime(last_ts[:10],  "%Y-%m-%d")
+        calendar_days = (last_date - first_date).days + 1
+        per_day = [
+            {"date": d,
+             "segments_cut": cut_by_date[d],
+             "segments_assembled": assy_by_date[d]}
+            for d in all_dates
+        ]
+        most_productive = max(per_day, key=lambda d: d["segments_cut"] + d["segments_assembled"])
+        summary["timeline"] = {
+            "first_action":    first_ts,
+            "last_action":     last_ts,
+            "calendar_days":   calendar_days,
+            "active_days":     active_days,
+            "avg_segments_cut_per_active_day":      round(segments_cut / active_days, 1) if active_days else 0,
+            "avg_segments_assembled_per_active_day": round(segments_assembled / active_days, 1) if active_days else 0,
+            "most_productive_day": most_productive,
+            "per_day": per_day,
+        }
+    else:
+        summary["timeline_note"] = "Timestamp tracking was not enabled when this progress was recorded — timing data unavailable."
+
+    return summary
+
+
+def build_archive_html(s):
+    tl = s.get("timeline")
+    if tl:
+        mpd = tl["most_productive_day"] or {}
+        per_day_rows = "\n".join(
+            f"<tr><td>{d['date']}</td><td>{d['segments_cut']}</td><td>{d['segments_assembled']}</td></tr>"
+            for d in tl["per_day"]
+        )
+        timeline_html = f"""
+        <section>
+            <h2>Timeline</h2>
+            <table class="kv">
+                <tr><th>First action</th><td>{tl['first_action'][:10]}</td></tr>
+                <tr><th>Last action</th><td>{tl['last_action'][:10]}</td></tr>
+                <tr><th>Calendar days</th><td>{tl['calendar_days']}</td></tr>
+                <tr><th>Active days</th><td>{tl['active_days']}</td></tr>
+                <tr><th>Avg segments cut / active day</th><td>{tl['avg_segments_cut_per_active_day']}</td></tr>
+                <tr><th>Avg segments assembled / active day</th><td>{tl['avg_segments_assembled_per_active_day']}</td></tr>
+                <tr><th>Most productive day</th><td>{mpd.get('date','—')}
+                    ({mpd.get('segments_cut',0)} cut, {mpd.get('segments_assembled',0)} assembled)</td></tr>
+            </table>
+            <h3>Daily Breakdown</h3>
+            <table>
+                <thead><tr><th>Date</th><th>Segments Cut</th><th>Segments Assembled</th></tr></thead>
+                <tbody>{per_day_rows}</tbody>
+            </table>
+        </section>"""
+    else:
+        note = s.get("timeline_note", "No timing data available.")
+        timeline_html = f'<section><h2>Timeline</h2><p class="note">{note}</p></section>'
+
+    b, seg, p = s["blocks"], s["segments"], s["pieces"]
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{s['quilt_name']} — Archive</title>
+<style>
+  body {{ font-family: Arial, sans-serif; background: #f9f9f9; color: #333; padding: 32px; max-width: 820px; margin: auto; }}
+  h1   {{ color: #c0392b; margin-bottom: 4px; }}
+  h2   {{ color: #1a5276; margin: 28px 0 12px; border-bottom: 2px solid #d5d8dc; padding-bottom: 4px; }}
+  h3   {{ color: #1a5276; margin: 20px 0 8px; }}
+  section {{ background: #fff; border-radius: 8px; padding: 24px 28px; margin-bottom: 20px;
+              box-shadow: 0 1px 4px rgba(0,0,0,.1); }}
+  .meta {{ color: #777; margin-bottom: 24px; font-size: 0.9rem; }}
+  .stat-row {{ display: flex; gap: 32px; flex-wrap: wrap; }}
+  .stat {{ text-align: center; min-width: 110px; }}
+  .stat .big {{ font-size: 2rem; font-weight: bold; color: #1a5276; }}
+  .stat .lbl {{ font-size: 0.8rem; color: #888; margin-top: 4px; }}
+  table {{ border-collapse: collapse; width: 100%; margin-top: 8px; }}
+  th, td {{ padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }}
+  th {{ background: #f0f3f4; font-weight: bold; }}
+  table.kv th {{ width: 260px; }}
+  .note {{ color: #888; font-style: italic; }}
+</style>
+</head>
+<body>
+<h1>{s['quilt_name']} — Completion Archive</h1>
+<p class="meta">Archived: {s['archive_date']} &nbsp;|&nbsp; Started: {s['start_date'] or '—'}</p>
+
+<section>
+  <h2>Summary</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="big">{b['complete']}/{b['total']}</div><div class="lbl">Blocks Complete</div></div>
+    <div class="stat"><div class="big">{seg['assembled']}/{seg['total']}</div><div class="lbl">Segments Assembled</div></div>
+    <div class="stat"><div class="big">{seg['cut']}/{seg['total']}</div><div class="lbl">Segments Cut</div></div>
+    <div class="stat"><div class="big">{p['checked']}/{p['total']}</div><div class="lbl">Pieces Checked Off</div></div>
+  </div>
+</section>
+
+{timeline_html}
+</body>
+</html>"""
+
+
+@app.route("/api/progress/archive", methods=["POST"])
+def api_archive():
+    quilt_id = get_active_quilt()
+    if not quilt_id:
+        return jsonify({"error": "No quilts found"}), 404
+
+    summary = build_archive_summary(quilt_id)
+    html    = build_archive_html(summary)
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("summary.json", json.dumps(summary, indent=2))
+        zf.writestr("summary.html", html)
+        pf, ppf, spf = _progress_files(quilt_id)
+        if pf.exists():  zf.write(pf,  "progress.json")
+        if ppf.exists(): zf.write(ppf, "piece_progress.json")
+        if spf.exists(): zf.write(spf, "sewing_progress.json")
+    buf.seek(0)
+
+    slug     = quilt_id.replace("-", "_")
+    date_str = summary["archive_date"].replace("-", "")
+    filename = f"{slug}_archive_{date_str}.zip"
+    return send_file(buf, mimetype="application/zip", as_attachment=True, download_name=filename)
 
 
 @app.route("/api/progress/reset", methods=["POST"])

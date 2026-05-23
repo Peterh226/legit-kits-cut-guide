@@ -782,13 +782,20 @@ async function updateProgress(block_id, fragment_id, field, value) {
     }
 }
 
-// ── Reset ─────────────────────────────────────────────────────────────────
+// ── Reset / Archive ────────────────────────────────────────────────────────
 
-async function resetProgress() {
-    if (!confirm("Reset all progress? This cannot be undone.")) return;
-    const res = await fetch("/api/progress/reset" + qp(), { method: "POST" });
-    const data = await res.json();
-    renderStats(data.stats);
+function showResetModal() {
+    const name = patternData ? patternData.name : "this quilt";
+    document.getElementById("modal-quilt-name").textContent = name;
+    document.getElementById("reset-modal").classList.add("open");
+}
+
+function closeResetModal() {
+    document.getElementById("reset-modal").classList.remove("open");
+}
+
+function _applyReset(stats) {
+    renderStats(stats);
     selectedBlocks = new Set();
     selectedBlock  = null;
     currentBlocks  = {};
@@ -798,8 +805,43 @@ async function resetProgress() {
     activeFrag     = null;
     pieceChecks    = {};
     sewingChecks   = {};
-    renderOverview(data.stats);
-    await refreshPattern();
+    renderOverview(stats);
+    refreshPattern();
+}
+
+async function doReset() {
+    closeResetModal();
+    const res  = await fetch("/api/progress/reset" + qp(), { method: "POST" });
+    const data = await res.json();
+    _applyReset(data.stats);
+}
+
+async function doArchiveAndReset() {
+    closeResetModal();
+
+    // Download archive zip
+    const archiveRes = await fetch("/api/progress/archive" + qp(), { method: "POST" });
+    if (!archiveRes.ok) {
+        alert("Archive failed — progress was not reset.");
+        return;
+    }
+    const blob = await archiveRes.blob();
+    const cd   = archiveRes.headers.get("Content-Disposition") || "";
+    const match = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : "quilt_archive.zip";
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement("a");
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Reset after download is triggered
+    const resetRes = await fetch("/api/progress/reset" + qp(), { method: "POST" });
+    const data     = await resetRes.json();
+    _applyReset(data.stats);
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────

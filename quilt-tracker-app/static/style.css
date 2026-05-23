@@ -41,6 +41,54 @@ header h1 {
 }
 #reset-btn:hover { background: #e94560; color: #fff; }
 
+/* ── Reset/Archive modal ── */
+#reset-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+}
+#reset-modal.open { display: flex; }
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+}
+.modal-box {
+    position: relative;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 10px;
+    padding: 28px 32px;
+    max-width: 440px;
+    width: 90%;
+    z-index: 1;
+}
+.modal-box h3 { color: #e94560; margin-bottom: 10px; font-size: 1.1rem; }
+.modal-box > p { color: #ccc; margin-bottom: 20px; line-height: 1.5; }
+.modal-actions { display: flex; flex-direction: column; gap: 10px; }
+.modal-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border: 1px solid;
+    text-align: left;
+    background: transparent;
+}
+.modal-btn-desc { font-size: 0.75rem; opacity: 0.7; margin-top: 3px; font-weight: normal; }
+.archive-btn  { border-color: #2196f3; color: #90caf9; }
+.archive-btn:hover  { background: #2196f3; color: #fff; }
+.reset-only-btn { border-color: #e94560; color: #e94560; }
+.reset-only-btn:hover { background: #e94560; color: #fff; }
+.cancel-btn   { border-color: #555; color: #999; }
+.cancel-btn:hover   { background: #333; color: #fff; }
+
 .stats-bar {
     display: flex;
     gap: 20px;

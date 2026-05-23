@@ -65,6 +65,27 @@
     </div>
 </div>
 
+<button id="reset-btn" onclick="showResetModal()">Reset&hellip;</button>
+
+<div id="reset-modal">
+    <div class="modal-overlay" onclick="closeResetModal()"></div>
+    <div class="modal-box">
+        <h3>Reset Progress</h3>
+        <p>Choose what to do with <strong id="modal-quilt-name"></strong>:</p>
+        <div class="modal-actions">
+            <button class="modal-btn archive-btn" onclick="doArchiveAndReset()">
+                Archive &amp; Reset
+                <span class="modal-btn-desc">Downloads a summary zip, then clears all progress</span>
+            </button>
+            <button class="modal-btn reset-only-btn" onclick="doReset()">
+                Reset Only
+                <span class="modal-btn-desc">Permanently clears all progress — cannot be undone</span>
+            </button>
+            <button class="modal-btn cancel-btn" onclick="closeResetModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <div class="version-stamp">{{ version }}</div>
 <script src="/static/app.js"></script>
 </body>
