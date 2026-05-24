@@ -23,7 +23,8 @@ quilts/*/lint_report.txt
 # Diagnostic report from fix_cut_rotation.py / extract.py --fix-rotation
 cut_rotation_report.json
 
-# Cut images — ~98MB total, too large for git; copy to Pi via scp (see CLAUDE.md)
+# Cut images — ~98MB total, too large for git;
+# copy to Pi via rsync/scp (see CLAUDE.md "Updating cut images on the Pi")
 quilts/*/cut/
 
 # Per-quilt progress files (Pi-local, not committed)

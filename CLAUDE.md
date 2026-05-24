@@ -213,6 +213,7 @@ running the assy stage.
 ## Deployment on Raspberry Pi
 
 The app runs on the same RPi 4 as HomeTempDashboard (port 3001 vs 3000), managed by pm2.
+Pi host: **`peterh226@192.168.50.143`**.
 
 **One-time setup:**
 ```bash
@@ -221,11 +222,27 @@ pm2 start ~/legit-kits-cut-guide/quilt-tracker-app/app.py --name quilttracker --
 pm2 save
 ```
 
-**Update workflow:**
+**Update workflow (code/data tracked in git):**
 ```bash
 cd ~/legit-kits-cut-guide && git pull && pm2 restart quilttracker
 ```
 Then shift-refresh in the browser for CSS/JS changes.
+
+**Updating cut images on the Pi**
+
+The `quilts/*/cut/` folders are gitignored (~98MB total), so `git pull` does **not** sync them.
+After running `extract.py` or rotating images locally, copy the affected quilt's `cut/` folder up
+manually. From the repo root on the dev machine:
+
+```bash
+# Replace contents (drops stale files):
+rsync -av --delete quilts/<quilt-id>/cut/ peterh226@192.168.50.143:~/legit-kits-cut-guide/quilts/<quilt-id>/cut/
+
+# Or simple scp (won't remove stale files):
+scp -r quilts/<quilt-id>/cut peterh226@192.168.50.143:~/legit-kits-cut-guide/quilts/<quilt-id>/
+```
+
+Then shift-refresh the browser to bypass cached images. No pm2 restart needed for image-only changes.
 
 **Useful commands:**
 ```bash
