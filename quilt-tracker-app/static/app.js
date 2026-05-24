@@ -563,7 +563,6 @@ function renderFabricsTab(block) {
                         onchange="checkPiece('${block.id}','${fragId}','${pieceKey}',this.checked)">
                     <span class="pc-tmpl">${p.template}</span>
                     <span class="pc-num">(${p.quantity})</span>
-                    <span class="pc-fabric">${code}</span>
                 </div>`;
         }).join("");
 
@@ -945,24 +944,34 @@ function renderFabricDetail(fab) {
     const panel   = document.getElementById("detail-panel");
     const bg      = fab.color || "#2a3a4a";
     const fg      = contrastColor(fab.color);
-    const allDone = fab.cut === fab.total && fab.total > 0;
 
-    // Group segments by block
+    // Group pieces by block_id
     const byBlock = {};
     for (const seg of fab.segments) {
         if (!byBlock[seg.block_id]) byBlock[seg.block_id] = [];
-        byBlock[seg.block_id].push(seg);
+        for (const p of (seg.pieces || [])) {
+            byBlock[seg.block_id].push({ ...p, frag_id: seg.frag_id });
+        }
     }
 
-    const blocks = Object.entries(byBlock).sort(([a], [b]) => a.localeCompare(b)).map(([block_id, segs]) => {
-        const done  = segs.filter(s => s.cut).length;
-        const total = segs.length;
-        const rows  = segs.map(seg => `
-            <div class="piece-check-row${seg.cut ? " seg-done" : ""}">
-                <input type="checkbox" ${seg.cut ? "checked" : ""}
-                    onchange="checkFabricSegment('${fab.code}','${seg.block_id}','${seg.frag_id}',this.checked)">
-                <span class="pc-tmpl">${seg.frag_id}</span>
-            </div>`).join("");
+    const blocks = Object.keys(byBlock).sort().map(block_id => {
+        const pieces      = byBlock[block_id];
+        const blockChecks = pieceChecks[block_id] || {};
+        const total = pieces.length;
+        const done  = pieces.filter(p => (blockChecks[p.frag_id] || {})[`${fab.code}_${p.piece_num}`]).length;
+
+        const rows = pieces.map(p => {
+            const pieceKey = `${fab.code}_${p.piece_num}`;
+            const checked  = (blockChecks[p.frag_id] || {})[pieceKey] || false;
+            return `
+                <div class="piece-check-row${checked ? " seg-done" : ""}">
+                    <input type="checkbox" ${checked ? "checked" : ""}
+                        onchange="checkFabricPiece('${fab.code}','${block_id}','${p.frag_id}','${pieceKey}',this.checked)">
+                    <span class="pc-tmpl">${p.template}</span>
+                    <span class="pc-num">(${p.quantity})</span>
+                </div>`;
+        }).join("");
+
         return `
             <div class="fabric-group ${done === total ? "fabric-done" : ""}">
                 <div class="fabric-group-header">
@@ -973,6 +982,13 @@ function renderFabricDetail(fab) {
             </div>`;
     }).join("");
 
+    const totalPieces = Object.values(byBlock).reduce((s, ps) => s + ps.length, 0);
+    const donePieces  = Object.entries(byBlock).reduce((s, [bid, ps]) => {
+        const bc = pieceChecks[bid] || {};
+        return s + ps.filter(p => (bc[p.frag_id] || {})[`${fab.code}_${p.piece_num}`]).length;
+    }, 0);
+    const allDone = donePieces === totalPieces && totalPieces > 0;
+
     panel.innerHTML = `
         <div class="fabric-detail-header" style="background:${bg};color:${fg};padding:14px 16px;border-radius:6px;margin-bottom:12px">
             <div style="font-size:1.6rem;font-weight:bold;line-height:1">${fab.code}</div>
@@ -980,9 +996,61 @@ function renderFabricDetail(fab) {
             <div style="font-size:0.8rem;margin-top:4px">${fab.sku ? "SKU " + fab.sku + " · " : ""}${fab.size || ""}</div>
         </div>
         <div style="margin-bottom:12px;font-size:0.9rem;color:${allDone ? "#4caf50" : "#ccc"}">
-            ${allDone ? "✓ All segments cut" : `${fab.cut} of ${fab.total} segments cut`}
+            ${allDone ? "✓ All pieces cut" : `${donePieces} of ${totalPieces} pieces cut`}
         </div>
         <div class="fabric-list">${blocks}</div>`;
+}
+
+async function checkFabricPiece(code, block_id, frag_id, piece_key, checked) {
+    // Update local pieceChecks
+    if (!pieceChecks[block_id]) pieceChecks[block_id] = {};
+    if (!pieceChecks[block_id][frag_id]) pieceChecks[block_id][frag_id] = {};
+    pieceChecks[block_id][frag_id][piece_key] = checked;
+
+    fetch("/api/piece_progress" + qp(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ block_id, frag_id, piece_num: piece_key, checked }),
+    });
+
+    // Check if all pieces in this segment are now done → cascade to segment cut
+    const fab = fabricData.find(f => f.code === code);
+    if (fab) {
+        const seg = fab.segments.find(s => s.block_id === block_id && s.frag_id === frag_id);
+        if (seg && seg.pieces) {
+            const fragChecks = (pieceChecks[block_id] || {})[frag_id] || {};
+            const allPiecesDone = seg.pieces.length > 0 &&
+                seg.pieces.every(p => fragChecks[`${code}_${p.piece_num}`]);
+            if (allPiecesDone !== seg.cut) {
+                const res = await fetch("/api/progress" + qp(), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ block_id, fragment_id: frag_id, field: "cut", value: allPiecesDone }),
+                });
+                const data = await res.json();
+                if (patternData) patternData.stats = data.stats;
+                renderStats(data.stats);
+                const el = document.getElementById(`block-${block_id}`);
+                if (el) el.className = `block ${data.status}${selectedBlocks.has(block_id) ? " selected" : ""}`;
+                seg.cut = allPiecesDone;
+                fab.cut = fab.segments.filter(s => s.cut).length;
+            }
+        }
+        // Update color tile
+        const allFabDone = fab.cut === fab.total && fab.total > 0;
+        const tiles = document.querySelectorAll(".color-tile");
+        fabricData.forEach((f, i) => {
+            if (f.code === code) {
+                const tile = tiles[i];
+                if (tile) {
+                    tile.querySelector(".ct-progress").textContent = allFabDone ? "✓ done" : `${fab.cut}/${fab.total}`;
+                    tile.querySelector(".ct-progress").className   = "ct-progress" + (allFabDone ? " done" : "");
+                    tile.classList.toggle("done", allFabDone);
+                }
+            }
+        });
+        renderFabricDetail(fab);
+    }
 }
 
 async function checkFabricSegment(code, block_id, frag_id, checked) {

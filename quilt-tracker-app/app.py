@@ -649,9 +649,8 @@ def api_fabrics():
                 return frag
         return None
 
-    # Collect unique (block_id, frag_id) per fabric, preserving pattern order
-    seen_pairs: dict[str, set] = defaultdict(set)
-    frag_cut: dict = {}
+    # Collect segments and pieces per fabric
+    seg_data: dict[str, dict] = defaultdict(dict)  # code -> {(block_id, frag_id): {cut, pieces}}
 
     for block_id, block in pattern["blocks"].items():
         bp = progress.get(block_id, {})
@@ -660,15 +659,27 @@ def api_fabrics():
             frag_id = frag_for_template(piece["template"], block["fragments"])
             if frag_id:
                 key = (block_id, frag_id)
-                if key not in seen_pairs[code]:
-                    seen_pairs[code].add(key)
+                if key not in seg_data[code]:
                     fp = bp.get(frag_id, {})
-                    frag_cut[key] = bool(fp.get("cut")) if isinstance(fp, dict) else False
+                    seg_data[code][key] = {
+                        "cut":    bool(fp.get("cut")) if isinstance(fp, dict) else False,
+                        "pieces": [],
+                    }
+                seg_data[code][key]["pieces"].append({
+                    "piece_num": piece["piece_num"],
+                    "template":  piece["template"],
+                    "quantity":  piece["quantity"],
+                })
 
     result = []
     for code, fab in pattern["fabrics"].items():
-        pairs = sorted(seen_pairs.get(code, set()))
-        segs  = [{"block_id": b, "frag_id": f, "cut": frag_cut.get((b, f), False)} for b, f in pairs]
+        pairs = sorted(seg_data.get(code, {}).keys())
+        segs  = [{
+            "block_id": b,
+            "frag_id":  f,
+            "cut":      seg_data[code][(b, f)]["cut"],
+            "pieces":   seg_data[code][(b, f)]["pieces"],
+        } for b, f in pairs]
         result.append({
             "code":     code,
             "name":     fab["name"],
