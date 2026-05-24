@@ -20,7 +20,7 @@ env/
 quilts/*/overview_data.json
 quilts/*/lint_report.txt
 
-# Cut images not needed on Pi (piece list shown instead)
+# Cut images — ~98MB total, too large for git; copy to Pi via scp (see CLAUDE.md)
 quilts/*/cut/
 
 # Per-quilt progress files (Pi-local, not committed)
