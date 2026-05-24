@@ -205,6 +205,7 @@ def build_stats(pattern, progress):
     complete = statuses.count("complete")
     in_progress = statuses.count("in_progress")
     total_segments = sum(len(pattern["blocks"][b]["fragments"]) for b in pattern["blocks"])
+    total_pieces   = sum(len(pattern["blocks"][b]["pieces"])    for b in pattern["blocks"])
     segments_cut   = sum(
         1
         for b in pattern["blocks"]
@@ -218,6 +219,7 @@ def build_stats(pattern, progress):
         "not_started":    total - complete - in_progress,
         "pct_complete":   round(complete / total * 100) if total else 0,
         "total_segments": total_segments,
+        "total_pieces":   total_pieces,
         "segments_cut":   segments_cut,
     }
 

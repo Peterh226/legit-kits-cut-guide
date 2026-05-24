@@ -197,12 +197,18 @@ header h1 {
 
 .stat { text-align: center; }
 .stat .val { font-size: 1.4rem; font-weight: bold; display: block; }
+.stat.fixed .val     { color: #e0e0e0; }
 .stat.complete .val  { color: #4caf50; }
 .stat.progress .val  { color: #ff9800; }
 .stat.remaining .val { color: #9e9e9e; }
 .stat.pct .val       { color: #2196f3; }
-.stat.segs .val      { color: #90caf9; }
-.stat.colors .val    { color: #ce93d8; }
+
+.stats-divider {
+    width: 1px;
+    background: #0f3460;
+    align-self: stretch;
+    margin: 0 4px;
+}
 
 /* ── Main layout ── */
 main {

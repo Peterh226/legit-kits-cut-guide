@@ -122,14 +122,14 @@ function renderStats(stats) {
     document.getElementById("stat-remaining").textContent = stats.not_started;
     document.getElementById("stat-pct").textContent       = stats.pct_complete + "%";
     if (stats.total_segments != null)
-        document.getElementById("stat-segs").textContent = `${stats.segments_cut}/${stats.total_segments}`;
+        document.getElementById("stat-total-segs").textContent = stats.total_segments.toLocaleString();
+    if (stats.total_pieces != null)
+        document.getElementById("stat-total-pieces").textContent = stats.total_pieces.toLocaleString();
 }
 
 function renderColorStats() {
     if (!fabricData.length) return;
-    const done  = fabricData.filter(f => f.cut === f.total && f.total > 0).length;
-    const total = fabricData.length;
-    document.getElementById("stat-colors").textContent = `${done}/${total}`;
+    document.getElementById("stat-colors").textContent = fabricData.length;
 }
 
 // ── Quilt grid ────────────────────────────────────────────────────────────
@@ -1016,7 +1016,6 @@ async function checkFabricSegment(code, block_id, frag_id, checked) {
     const data = await res.json();
     if (patternData) patternData.stats = data.stats;
     renderStats(data.stats);
-    renderColorStats();
     const el = document.getElementById(`block-${block_id}`);
     if (el) el.className = `block ${data.status}${selectedBlocks.has(block_id) ? " selected" : ""}`;
 
