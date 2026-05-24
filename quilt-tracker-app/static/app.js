@@ -934,11 +934,14 @@ function renderColorGrid() {
         const progCls = allDone ? "done" : "";
         const selCls  = fab.code === selectedFabric ? " selected" : "";
         const doneCls = allDone ? " done" : "";
+        const pages   = (fab.pages || []).join(", ");
+        const pageStr = pages ? `p. ${pages}` : "";
         return `<div class="color-tile${selCls}${doneCls}"
                      style="background:${bg};color:${fg}"
                      onclick="selectFabric('${fab.code}')">
             <span class="ct-code">${fab.code}</span>
             <span class="ct-name">${fab.name}</span>
+            <span class="ct-pages">${pageStr}</span>
             <span class="ct-progress ${progCls}">${allDone ? "✓ done" : `${fab.cut}/${fab.total}`}</span>
         </div>`;
     }).join("");
@@ -983,6 +986,7 @@ function renderFabricDetail(fab) {
                 <div class="piece-check-row${checked ? " seg-done" : ""}">
                     <input type="checkbox" ${checked ? "checked" : ""}
                         onchange="checkFabricPiece('${fab.code}','${block_id}','${p.frag_id}','${pieceKey}',this.checked)">
+                    <span class="pc-circle">${p.piece_num}</span>
                     <span class="pc-tmpl">${p.template}</span>
                     <span class="pc-num">(${p.quantity})</span>
                 </div>`;

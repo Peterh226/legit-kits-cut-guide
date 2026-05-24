@@ -306,6 +306,12 @@ header h1 {
     opacity: 0.85;
     word-break: break-word;
 }
+.ct-pages {
+    font-size: 0.65rem;
+    line-height: 1.2;
+    opacity: 0.7;
+    font-style: italic;
+}
 .ct-progress {
     font-size: 0.7rem;
     margin-top: auto;
@@ -599,6 +605,19 @@ main {
 .piece-check-row input { cursor: pointer; accent-color: #4caf50; flex-shrink: 0; margin-right: 4px; }
 .piece-check-row.seg-done { opacity: 0.5; }
 
+.pc-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5em;
+    height: 1.5em;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    font-size: 0.75rem;
+    font-weight: bold;
+    flex-shrink: 0;
+    margin-right: 4px;
+}
 .pc-tmpl   { color: #ccc; }
 .pc-num    { color: #888; margin-left: 2px; }
 .pc-fabric { color: #90caf9; font-weight: bold; margin-left: 8px; }
