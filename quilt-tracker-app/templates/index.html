@@ -25,7 +25,7 @@
         <button class="view-toggle-btn active" id="btn-view-quilt"  onclick="switchView('quilt')">Quilt</button>
         <button class="view-toggle-btn"        id="btn-view-colors" onclick="switchView('colors')">Colors</button>
         <span class="toggle-divider"></span>
-        <button class="view-toggle-btn soon" disabled>Help</button>
+        <button class="view-toggle-btn" id="btn-view-help" onclick="switchView('help')">Help</button>
         <button class="view-toggle-btn soon" disabled>FAQ</button>
         <button class="view-toggle-btn soon" disabled>Labels</button>
     </div>
@@ -68,6 +68,71 @@
     </div>
     <div class="color-grid-wrap" id="color-grid-wrap">
         <div id="color-grid"></div>
+    </div>
+    <div class="help-wrap" id="help-wrap">
+        <div class="help-content">
+
+            <div class="help-hero">
+                <img src="/static/help_pyramid.jpg" alt="Quilt hierarchy pyramid" class="help-pyramid-img">
+                <div class="help-intro">
+                    <h2>How It Works</h2>
+                    <p>Your quilt kit is organized into four levels. Each level builds on the one below it — cut pieces become segments, segments become blocks, blocks become your quilt.</p>
+                    <p>This app tracks your progress at every level, and gives you two ways to work through the cutting.</p>
+                </div>
+            </div>
+
+            <div class="help-levels">
+                <div class="help-level-card level-quilt">
+                    <div class="hlc-label">Quilt</div>
+                    <img id="help-img-quilt" class="hlc-img" src="" alt="Quilt overview">
+                    <p>The finished project. All blocks arranged in a labeled grid — rows A–H, columns 1–8. The grid is your map.</p>
+                </div>
+                <div class="help-level-card level-blocks">
+                    <div class="hlc-label">Blocks</div>
+                    <div class="hlc-mock-block">
+                        <div class="mock-grid">
+                            <div class="mock-cell highlight">A4</div>
+                            <div class="mock-cell">A5</div>
+                            <div class="mock-cell">B4</div>
+                            <div class="mock-cell">B5</div>
+                        </div>
+                    </div>
+                    <p>Each cell in the grid is a block (e.g. A4). A block may contain one segment or several that are sewn together in sequence.</p>
+                </div>
+                <div class="help-level-card level-segments">
+                    <div class="hlc-label">Segments</div>
+                    <img id="help-img-assy" class="hlc-img" src="" alt="Assembly diagram">
+                    <p>A segment (e.g. A4a, A4b) is the sewing unit within a block. The assembly guide shows you the order to join segments.</p>
+                </div>
+                <div class="help-level-card level-pieces">
+                    <div class="hlc-label">Pieces</div>
+                    <div class="hlc-mock-pieces">
+                        <div class="mock-piece">① GF <span>×3</span></div>
+                        <div class="mock-piece">③ AF <span>×1</span></div>
+                        <div class="mock-piece">④ UN <span>×2</span></div>
+                        <div class="mock-piece">⑧ GH <span>×3</span></div>
+                    </div>
+                    <p>Individual fabric cuts. Each piece has a fabric color, a template shape, and a quantity. Cut pieces become segments.</p>
+                </div>
+            </div>
+
+            <div class="help-workflows">
+                <h3>Two ways to work</h3>
+                <div class="help-wf-cards">
+                    <div class="help-wf-card">
+                        <div class="wf-label">Quilt View</div>
+                        <p>Work <strong>block by block</strong>. Click a block on the grid, check off pieces and segments as you cut them, then step through the assembly guide.</p>
+                        <p class="wf-hint">Best when you work one block at a time from start to finish.</p>
+                    </div>
+                    <div class="help-wf-card">
+                        <div class="wf-label">Colors View</div>
+                        <p>Work <strong>color by color</strong>. Click a fabric tile to see every piece of that color across all blocks, and check them off in one run.</p>
+                        <p class="wf-hint">Best when you cut an entire fabric before moving to the next color.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
     <div class="detail-panel" id="detail-panel">
         <h2>Block Detail</h2>

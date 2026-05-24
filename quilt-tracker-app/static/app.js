@@ -70,8 +70,10 @@ async function init() {
     // Apply current view state to DOM
     document.getElementById("quilt-wrap").classList.toggle("active", activeView === "quilt");
     document.getElementById("color-grid-wrap").classList.toggle("active", activeView === "colors");
+    document.getElementById("help-wrap").classList.toggle("active", activeView === "help");
     document.getElementById("btn-view-quilt").classList.toggle("active", activeView === "quilt");
     document.getElementById("btn-view-colors").classList.toggle("active", activeView === "colors");
+    document.getElementById("btn-view-help").classList.toggle("active", activeView === "help");
 
     const [pp, sp] = await Promise.all([
         fetch("/api/piece_progress" + qp()).then(r => r.json()),
@@ -880,8 +882,10 @@ function switchView(view) {
     activeView = view;
     document.getElementById("quilt-wrap").classList.toggle("active", view === "quilt");
     document.getElementById("color-grid-wrap").classList.toggle("active", view === "colors");
+    document.getElementById("help-wrap").classList.toggle("active", view === "help");
     document.getElementById("btn-view-quilt").classList.toggle("active", view === "quilt");
     document.getElementById("btn-view-colors").classList.toggle("active", view === "colors");
+    document.getElementById("btn-view-help").classList.toggle("active", view === "help");
 
     if (view === "colors") {
         renderColorGrid();
@@ -891,9 +895,21 @@ function switchView(view) {
         } else {
             renderOverview(patternData ? patternData.stats : {total:0,complete:0,in_progress:0,not_started:0,pct_complete:0});
         }
-    } else {
+    } else if (view === "quilt") {
         if (selectedBlock) loadDetail();
         else renderOverview(patternData ? patternData.stats : {});
+    }
+    // help view: inject live quilt images
+    if (view === "help" && activeQuilt) {
+        const qi = document.getElementById("help-img-quilt");
+        if (qi && !qi.src.includes(activeQuilt))
+            qi.src = `/quilts/${activeQuilt}/overview.jpg`;
+        const ai = document.getElementById("help-img-assy");
+        if (ai && !ai.src.includes(activeQuilt)) {
+            fetch("/api/assy_list" + qp()).then(r => r.json()).then(list => {
+                if (list.length) ai.src = `/quilts/${activeQuilt}/assy/${list[0]}`;
+            }).catch(() => {});
+        }
     }
 }
 

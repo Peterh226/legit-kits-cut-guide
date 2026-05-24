@@ -135,6 +135,141 @@ header h1 {
 }
 .color-grid-wrap.active { display: block; }
 .quilt-wrap.active      { display: block; }
+.help-wrap              { display: none; }
+.help-wrap.active       { display: block; }
+
+/* ── Help page ── */
+.help-content {
+    max-width: 900px;
+    padding: 24px;
+    color: #ccc;
+}
+.help-hero {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+}
+.help-pyramid-img {
+    width: 320px;
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid #0f3460;
+    flex-shrink: 0;
+}
+.help-intro h2 {
+    color: #e94560;
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+}
+.help-intro p { margin-bottom: 10px; line-height: 1.6; font-size: 0.9rem; }
+
+.help-levels {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+}
+.help-level-card {
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.hlc-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    align-self: flex-start;
+}
+.level-quilt   .hlc-label { background: #0f3460; color: #90caf9; }
+.level-blocks  .hlc-label { background: #2a1f00; color: #ffd180; }
+.level-segments .hlc-label { background: #0d2b12; color: #a5d6a7; }
+.level-pieces  .hlc-label { background: #2b0a14; color: #f48fb1; }
+.hlc-img {
+    width: 100%;
+    border-radius: 4px;
+    border: 1px solid #0f3460;
+    object-fit: cover;
+    height: 110px;
+}
+.help-level-card p { font-size: 0.8rem; line-height: 1.5; color: #aaa; margin: 0; }
+
+.hlc-mock-block { display: flex; justify-content: center; }
+.mock-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 100px;
+}
+.mock-cell {
+    background: #0f1f3c;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #555;
+}
+.mock-cell.highlight {
+    border-color: #ff9800;
+    color: #ffd180;
+    background: rgba(122,79,0,0.3);
+}
+
+.hlc-mock-pieces {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.mock-piece {
+    background: #0f1f3c;
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    color: #90caf9;
+    display: flex;
+    justify-content: space-between;
+}
+.mock-piece span { color: #ffd180; }
+
+.help-workflows h3 {
+    color: #e94560;
+    font-size: 1rem;
+    margin-bottom: 14px;
+}
+.help-wf-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    max-width: 600px;
+}
+.help-wf-card {
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 16px;
+}
+.wf-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #e94560;
+    margin-bottom: 8px;
+}
+.help-wf-card p { font-size: 0.83rem; line-height: 1.5; color: #aaa; margin-bottom: 8px; }
+.wf-hint { font-style: italic; color: #666 !important; font-size: 0.75rem !important; }
 
 #color-grid {
     display: grid;

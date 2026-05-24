@@ -250,6 +250,17 @@ def quilt_assy_image(quilt_id, filename):
         return "", 404
     return send_file(path, mimetype="image/jpeg")
 
+@app.route("/api/assy_list")
+def api_assy_list():
+    quilt_id = get_active_quilt()
+    if not quilt_id:
+        return jsonify([])
+    assy_dir = QUILTS_DIR / quilt_id / "assy"
+    if not assy_dir.exists():
+        return jsonify([])
+    files = sorted(f.name for f in assy_dir.iterdir() if f.suffix.lower() == ".jpg")
+    return jsonify(files)
+
 
 # ---------------------------------------------------------------------------
 # Routes — pattern & progress
