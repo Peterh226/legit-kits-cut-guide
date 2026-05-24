@@ -31,11 +31,16 @@ def _load_quilt(quilt_id):
     quilt_dir = root / "quilts" / quilt_id
     if not quilt_dir.exists():
         raise SystemExit(f"Error: quilts/{quilt_id}/ not found")
-    g = {}
-    exec((quilt_dir / "cut_guide_data.py").read_text(encoding="utf-8"), g)
+    cut_ns = {}
+    exec((quilt_dir / "cut_guide_data.py").read_text(encoding="utf-8"), cut_ns)
+    asm_ns = {}
+    asm_path = quilt_dir / "assembly_data.py"
+    if asm_path.exists():
+        exec(asm_path.read_text(encoding="utf-8"), asm_ns)
+    blocks = asm_ns.get("BLOCKS", {})
     config_path = quilt_dir / "config.json"
     config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
-    return g["DATA"], config.get("quilt_name", quilt_id)
+    return cut_ns["DATA"], blocks, config
 
 
 def _default_quilt_id():
@@ -182,10 +187,107 @@ def check_template_codes(data):
 
 
 # ---------------------------------------------------------------------------
+# Cross-check: cut data vs assembly data and config metadata
+# ---------------------------------------------------------------------------
+
+def _block_of(template):
+    """Return the block id portion of a template code (e.g. 'B1' from 'B1a')."""
+    m = re.match(r'^([A-Z]\d+|\d+[A-Z])', str(template))
+    return m.group(1) if m else None
+
+
+def check_unknown_templates(data, blocks):
+    """Cut templates that do not appear in assembly_data BLOCKS.
+
+    Likely vision misreads — flagged for manual review. Case-insensitive match
+    is used too so L/l case-only differences are reported separately.
+    """
+    all_segs = {seg for frags in blocks.values() for seg in frags}
+    all_segs_ci = {s.lower(): s for s in all_segs}
+    warnings = []
+    unknown = sorted({r[5] for r in data} - all_segs)
+    for t in unknown:
+        ci = all_segs_ci.get(str(t).lower())
+        if ci and ci != t:
+            warnings.append(f"  cut template '{t}' differs from assembly '{ci}' only in letter case")
+        else:
+            count = sum(1 for r in data if r[5] == t)
+            block = _block_of(t)
+            block_segs = sorted(blocks.get(block, [])) if block else []
+            warnings.append(
+                f"  cut template '{t}' has no matching assembly segment "
+                f"({count} cut row(s); assembly segments for block {block}: {block_segs})"
+            )
+    return warnings
+
+
+def check_empty_assembly_segments(data, blocks):
+    """Assembly segments with zero cut rows — possible missing pieces."""
+    cut_templates = {r[5] for r in data}
+    warnings = []
+    for block, frags in sorted(blocks.items()):
+        for seg in frags:
+            if seg not in cut_templates:
+                # Tolerate case-only mismatch (separately flagged by check_unknown_templates)
+                if any(t.lower() == seg.lower() for t in cut_templates):
+                    continue
+                warnings.append(f"  assembly segment '{seg}' has no cut rows")
+    return warnings
+
+
+def check_sew_sequence_gaps(data):
+    """For each segment, the sew sequence values across all fabrics should be 1..N
+    with no gaps. A gap means a piece is missing from cut extraction."""
+    by_seg = defaultdict(list)
+    for r in data:
+        # r = (fabric, name, sku, size, piece_num, template, sew_seq, page)
+        by_seg[r[5]].append((r[6], r[0], r[7]))  # (seq, fabric, page)
+
+    warnings = []
+    for seg, entries in sorted(by_seg.items()):
+        seqs = sorted({e[0] for e in entries if isinstance(e[0], int)})
+        if not seqs:
+            continue
+        max_seq = seqs[-1]
+        missing = sorted(set(range(1, max_seq + 1)) - set(seqs))
+        if missing:
+            fabrics = sorted({e[1] for e in entries})
+            pages = sorted({e[2] for e in entries})
+            warnings.append(
+                f"  {seg}: missing sew sequence {missing} (max seen={max_seq}; "
+                f"fabrics={fabrics}; pages seen={pages})"
+            )
+    return warnings
+
+
+def check_metadata_counts(data, config):
+    """Cross-check against config.json metadata.colors_expected / pieces_expected."""
+    meta = config.get("metadata", {})
+    if not meta.get("colors_expected") and not meta.get("pieces_expected"):
+        return []
+    actual_colors = len({r[0] for r in data})
+    actual_pieces = len(data)
+    warnings = []
+    if meta.get("colors_expected") is not None and meta["colors_expected"] != actual_colors:
+        warnings.append(
+            f"  Colors: cover says {meta['colors_expected']}, extracted {actual_colors} "
+            f"(delta {actual_colors - meta['colors_expected']:+d})"
+        )
+    if meta.get("pieces_expected") is not None and meta["pieces_expected"] != actual_pieces:
+        warnings.append(
+            f"  Pieces: cover says {meta['pieces_expected']}, extracted {actual_pieces} "
+            f"(delta {actual_pieces - meta['pieces_expected']:+d})"
+        )
+    return warnings
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
-def run_lint(data, quilt_name):
+def run_lint(data, quilt_name, blocks=None, config=None):
+    blocks = blocks or {}
+    config = config or {}
     all_errors   = []
     all_warnings = []
 
@@ -223,6 +325,23 @@ def run_lint(data, quilt_name):
     if warns:
         all_warnings.append(("Unusual template codes", warns))
 
+    warns = check_metadata_counts(data, config)
+    if warns:
+        all_warnings.append(("Cover-page cross-check (config metadata)", warns))
+
+    if blocks:
+        warns = check_unknown_templates(data, blocks)
+        if warns:
+            all_warnings.append(("Cut templates not in assembly", warns))
+
+        warns = check_empty_assembly_segments(data, blocks)
+        if warns:
+            all_warnings.append(("Assembly segments with no cut rows", warns))
+
+        warns = check_sew_sequence_gaps(data)
+        if warns:
+            all_warnings.append(("Sew-sequence gaps", warns))
+
     print(f"Linting {quilt_name}: {len(data)} rows, "
           f"{len({r[0] for r in data})} fabrics...\n")
 
@@ -258,11 +377,12 @@ if __name__ == "__main__":
     parser.add_argument("--quilt-id", "-q", help="Quilt ID (default: first in quilts/)")
     args = parser.parse_args()
     quilt_id = args.quilt_id or _default_quilt_id()
-    data, quilt_name = _load_quilt(quilt_id)
+    data, blocks, config = _load_quilt(quilt_id)
+    quilt_name = config.get("quilt_name", quilt_id)
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        exit_code = run_lint(data, quilt_name)
+        exit_code = run_lint(data, quilt_name, blocks=blocks, config=config)
     output = buf.getvalue()
     print(output, end="")
 

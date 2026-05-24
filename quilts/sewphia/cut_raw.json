@@ -3030,13 +3030,13 @@
     "ts": "2026-05-02T21:45:38.033018+00:00"
   },
   "cut_012.jpg": {
-    "status": "warning",
+    "status": "ok",
     "data": [
       {
         "fabric_code": "G",
         "fabric_name": "Ruby",
         "sku": "352",
-        "fabric_size": "5.5\" x 9\" Scrap",
+        "fabric_size": "5.5\"x9\" Scrap",
         "piece_num": 1,
         "template_code": "D1d",
         "quantity": 1,
@@ -3133,11 +3133,8 @@
       }
     ],
     "rows": 9,
-    "warnings": [
-      "Template A4a: sew_sequence gap(s) \u2014 missing [1]",
-      "Template C1b: sew_sequence gap(s) \u2014 missing [1]"
-    ],
-    "ts": "2026-05-02T21:45:47.899654+00:00"
+    "warnings": [],
+    "ts": "2026-05-24T21:06:51.407316+00:00"
   },
   "cut_013.jpg": {
     "status": "warning",

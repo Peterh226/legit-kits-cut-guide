@@ -113,6 +113,55 @@ def call_claude(client: anthropic.Anthropic, image_path: Path, prompt: str) -> s
     return msg.content[0].text
 
 
+def _img_to_b64(img: Image.Image) -> str:
+    """Encode a PIL image to base64 JPEG, shrinking if needed to fit MAX_BYTES."""
+    quality = 85
+    while True:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality)
+        data = buf.getvalue()
+        if len(data) <= MAX_BYTES:
+            return base64.standard_b64encode(data).decode("utf-8")
+        if quality > 50:
+            quality -= 10
+        else:
+            w, h = img.size
+            img = img.resize((w * 3 // 4, h * 3 // 4), Image.LANCZOS)
+
+
+def call_claude_multi(client: anthropic.Anthropic, b64_images: list[str], prompt: str) -> str:
+    """Send multiple base64-encoded images plus a prompt to Claude."""
+    image_blocks = [
+        {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}}
+        for b64 in b64_images
+    ]
+    msg = client.messages.create(
+        model="claude-opus-4-7",
+        max_tokens=16000,
+        messages=[{
+            "role": "user",
+            "content": image_blocks + [{"type": "text", "text": prompt}],
+        }],
+    )
+    return msg.content[0].text
+
+
+def _cut_page_images(img_path: Path) -> list[str]:
+    """Encode a cut page as three base64 JPEGs:
+    [0] full page (for layout / fabric metadata)
+    [1] left half (higher effective resolution for left-side text)
+    [2] right half (higher effective resolution for right-side text)
+
+    Splitting horizontally avoids Claude's downscale of the full 3229×2479 page,
+    which otherwise renders thin segment-suffix characters (1 vs l vs n) ambiguous.
+    """
+    full = Image.open(img_path).convert("RGB")
+    w, h = full.size
+    left  = full.crop((0,     0, w // 2, h))
+    right = full.crop((w // 2, 0, w,      h))
+    return [_img_to_b64(full), _img_to_b64(left), _img_to_b64(right)]
+
+
 def _parse_json(raw: str, source: str) -> list | dict | None:
     raw = re.sub(r"^```[a-z]*\n?", "", raw.strip())
     raw = re.sub(r"\n?```$", "", raw)
@@ -428,8 +477,22 @@ def _build_cut_prompt(fabric_lookup: dict[str, str]) -> str:
         pairs = ", ".join(f"{code}={name.title()}" for name, code in sorted(fabric_lookup.items()))
         fabric_hint = f"\nKnown fabric codes for this pattern: {pairs}\nUse these codes exactly when you can identify the fabric by name.\n"
     return f"""\
-This is a page from a Legit Kits quilt cut guide. Each page covers one or more fabrics.
-For each fabric on this page, extract ALL piece entries.
+You are given THREE images of the same Legit Kits cut guide page:
+  Image 1 — the full page (use for layout, fabric metadata, counting circled
+            piece numbers in the diagrams).
+  Image 2 — the LEFT half of the page (zoomed in, higher effective resolution
+            for any text/template codes printed in the left half).
+  Image 3 — the RIGHT half of the page (zoomed in, higher effective resolution
+            for any text/template codes printed in the right half).
+
+When reading template codes — especially the smaller segment-suffix character
+that follows the block ID — ALWAYS consult the matching half-image (image 2
+or 3) before deciding what character it is. The half-images preserve far more
+pixel detail than the full page, which is the difference between confidently
+reading a digit "1" vs. mistaking it for "l" or "n".
+
+Each page covers one or more fabrics. For each fabric on this page, extract
+ALL piece entries.
 {fabric_hint}
 A fabric section has:
 - Fabric code (short code like AF, BT, etc.)
@@ -439,7 +502,9 @@ A fabric section has:
 - A list of pieces, each with:
   - Piece number (integer, from circled numbers)
   - Template code (e.g. F3m, A4a, B7c — row letter + column number + optional segment letter)
-  - Quantity (the number in parentheses after the template code; if absent use 1)
+  - Sew sequence (the number in parentheses after the template code — this is the piece's
+    position in the sewing order within its segment, NOT a quantity. If no parentheses
+    appear, the segment contains only this single piece, so the sequence value is 1.)
 - fabric_piece_count: the TOTAL number of pieces listed for this fabric on this page
   (count every circled number visible in the piece list, including any printed below the image)
 
@@ -448,13 +513,32 @@ including any entries printed BELOW the diagram image.
 The page number is printed at the bottom of the cut guide page.
 
 IMPORTANT: Template codes use a mixed font size where the block ID portion (e.g. "B1",
-"C2") appears slightly larger than the segment suffix that follows ("2", "10", "11", etc.).
-Do NOT insert any separator character between them, and do NOT confuse the segment suffix
-with the cut count. For example: "B12(3)" means template_code="B12", quantity=3 — not
-template_code="B1", quantity=2. Similarly "C210(1)" means template_code="C210", quantity=1.
-If no parenthesised number follows, quantity=1.
+"C2") appears slightly larger than the segment suffix that follows. Segment suffixes are
+either a lowercase letter (a-z) OR a digit/multi-digit number that continues after the
+letters run out (1, 2, ..., 11, 12, ...). Examples of templates: B1a, B1z, B11, B12,
+C210. Do NOT insert any separator character between block ID and suffix. Do NOT confuse
+the segment suffix with the parenthesised sew sequence. For example: "B12(3)" means
+template_code="B12", sew_sequence=3 — not template_code="B1", sew_sequence=2. Similarly
+"C210(1)" means template_code="C210", sew_sequence=1.
 
-Return ONLY a JSON array. Each element represents one piece row:
+CRITICAL — character disambiguation for the segment suffix:
+- The segment suffix is printed in a SMALLER, THINNER font than the block ID. At low
+  resolution a small thin digit "1" can be mistaken for a lowercase letter such as
+  "l", "i", "n", "h", or "r". If the character is a SINGLE thin vertical stroke with
+  no curves, humps, dots, or descenders, prefer reading it as the digit "1".
+- Lowercase letters have distinguishing features: "n" has a rounded hump, "h" has a
+  hump and ascender, "l" has a clear ascender to the top, "i" has a dot, "r" has a
+  flag at the top. If you do not see any of these features, the character is a digit.
+- A lowercase letter "l" (the letter ell) should always be RECORDED IN UPPERCASE as
+  "L" (e.g. C1L, not C1l) so it is never confused with the segment-after-z digit "1".
+  Only use "L" if the original character clearly has an ascender / is the letter ell.
+
+If no parentheses follow the template code on a row, the segment contains exactly one
+piece, so the sew sequence value is 1.
+
+Return ONLY a JSON array. Each element represents one piece row. NOTE: the JSON key is
+named "quantity" for backward compatibility, but its value is the sew sequence number
+described above (NOT a quantity).
 [
   {{
     "fabric_code": "AF",
@@ -647,7 +731,7 @@ def run_cut(
             continue
         print(f"  [cut] {img.name} ...", end=" ", flush=True)
         try:
-            raw = call_claude(client, img, prompt)
+            raw = call_claude_multi(client, _cut_page_images(img), prompt)
             rows = _parse_json(raw, img.name)
             if rows is None:
                 staging[img.name] = {"status": "error", "error": "JSON parse failed", "raw": raw[:1000], "ts": _ts()}

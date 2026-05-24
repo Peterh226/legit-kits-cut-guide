@@ -255,7 +255,7 @@ DATA = [
     ('EP', 'Eggplant', '1133', 'Fat 1/16YD', 8, 'C4d', 3, 11),
     ('EP', 'Eggplant', '1133', 'Fat 1/16YD', 9, 'D2q', 1, 11),
     ('EP', 'Eggplant', '1133', 'Fat 1/16YD', 10, 'D2t', 2, 11),
-    ('G', 'Ruby', '352', '5.5" x 9" Scrap', 1, 'D1d', 1, 12),
+    ('G', 'Ruby', '352', '5.5"x9" Scrap', 1, 'D1d', 1, 12),
     ('GF', 'Goldfish', '474', 'Fat 1/8YD', 1, 'A4a', 2, 12),
     ('GF', 'Goldfish', '474', 'Fat 1/8YD', 2, 'B1q', 1, 12),
     ('GF', 'Goldfish', '474', 'Fat 1/8YD', 3, 'B1z', 1, 12),
