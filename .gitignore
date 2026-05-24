@@ -20,6 +20,9 @@ env/
 quilts/*/overview_data.json
 quilts/*/lint_report.txt
 
+# Diagnostic report from fix_cut_rotation.py / extract.py --fix-rotation
+cut_rotation_report.json
+
 # Cut images — ~98MB total, too large for git; copy to Pi via scp (see CLAUDE.md)
 quilts/*/cut/
 

@@ -19,8 +19,11 @@ Options:
     --status            Print per-stage staging status and exit
     --dry-run           Call API and validate, but don't write output files
     --api-key KEY       Anthropic API key (overrides ANTHROPIC_API_KEY env var)
-    --fix-rotation      After copying cut images, detect and fix any 180° rotation
-                        using Claude Haiku vision (adds ~$0.01/image in API cost)
+    --no-rotate-cuts    Don't rotate cut images 90° CCW on copy. Default behavior
+                        assumes the standard portrait scan convention; use this if
+                        scans are already upright.
+    --fix-rotation      After copying cut images, run a per-page Haiku rotation
+                        check (fallback for non-standard scans; ~$0.01/image)
 
 Output (written to quilts/<quilt-id>/):
     overview_data.json      Master fabric list and metadata
@@ -790,17 +793,27 @@ def _copy_assy_images(assy_folder: Path, out_dir: Path) -> None:
         (dest / img.name).write_bytes(img.read_bytes())
     print(f"Copied {len(images)} assy images to {dest}")
 
-def _copy_cut_images(cut_folder: Path, out_dir: Path) -> None:
+def _copy_cut_images(cut_folder: Path, out_dir: Path, rotate_ccw: int = 90) -> None:
+    """Copy cut images into out_dir/cut, optionally rotating CCW by `rotate_ccw` degrees.
+
+    Standard scan convention is portrait-fed pages with the title on the right edge,
+    which read upright after 90° CCW. Pass rotate_ccw=0 if scans are already upright.
+    """
     images = sorted_images(cut_folder, "cut")
     dest = out_dir / "cut"
     dest.mkdir(exist_ok=True)
     copied = 0
     for img in images:
         target = dest / img.name
-        if not target.exists():
+        if target.exists():
+            continue
+        if rotate_ccw:
+            Image.open(img).rotate(rotate_ccw, expand=True).save(target, quality=92)
+        else:
             target.write_bytes(img.read_bytes())
-            copied += 1
-    print(f"Copied {copied} cut images to {dest} ({len(images)} total)")
+        copied += 1
+    suffix = f" (rotated {rotate_ccw}° CCW)" if rotate_ccw else ""
+    print(f"Copied {copied} cut images to {dest} ({len(images)} total){suffix}")
 
 
 def _fix_cut_rotation(client: anthropic.Anthropic, cut_dir: Path) -> None:
@@ -881,7 +894,10 @@ def main() -> None:
     parser.add_argument("--finalize",  action="store_true", help="Write output files from staging; no API calls")
     parser.add_argument("--status",    action="store_true", help="Show staging status and exit")
     parser.add_argument("--dry-run",      action="store_true", help="Call API but don't write output files")
-    parser.add_argument("--fix-rotation", action="store_true", help="Detect and fix cut image rotation after copying")
+    parser.add_argument("--no-rotate-cuts", action="store_true",
+                        help="Don't rotate cut images 90° CCW on copy (use if scans are already upright)")
+    parser.add_argument("--fix-rotation", action="store_true",
+                        help="Run Haiku-based per-page rotation check after copying (fallback for non-standard scans)")
     parser.add_argument("--api-key",   help="Anthropic API key")
     args = parser.parse_args()
 
@@ -977,7 +993,8 @@ def main() -> None:
                 new_rows = [r for r in rows if int(r.get("page") or 0) in target_pages]
                 rows = sorted(kept + new_rows, key=lambda r: (int(r.get("page") or 0), int(r.get("piece_num") or 0)))
             write_cut_guide_data(rows, out_path)
-            _copy_cut_images(cut_folder, out_dir)
+            rotate_ccw = 0 if args.no_rotate_cuts else 90
+            _copy_cut_images(cut_folder, out_dir, rotate_ccw=rotate_ccw)
             if args.fix_rotation:
                 print("\n=== Rotation check ===")
                 _fix_cut_rotation(client, out_dir / "cut")

@@ -94,6 +94,12 @@ python extract.py "<scan_folder>" --finalize
 
 # Process but don't write output files (for inspection)
 python extract.py "<scan_folder>" --stage cut --dry-run
+
+# Skip the default 90° CCW rotation of cut images (use if scans are already upright)
+python extract.py "<scan_folder>" --stage cut --no-rotate-cuts
+
+# Fallback: per-page Haiku rotation check after copying (for mixed/non-standard scans)
+python extract.py "<scan_folder>" --stage cut --fix-rotation
 ```
 
 Each page is checkpointed immediately after processing into staging files
@@ -161,6 +167,12 @@ running the assy stage.
        cut\        ← cut guide pages
        assy\       ← assembly guide pages
    ```
+   **Cut page scan convention:** feed cut pages into the scanner in portrait
+   orientation with the page title on the long-edge that ends up on the *right*
+   side of the JPG. `extract.py` rotates cut images 90° CCW on copy by default,
+   which makes the title land at the top. Pass `--no-rotate-cuts` if your scans
+   are already upright, or `--fix-rotation` to fall back to per-page Haiku
+   detection for mixed/non-standard scans.
 
 2. **Run extract.py** (from the repo root, on a machine with `ANTHROPIC_API_KEY` set):
    ```bash
