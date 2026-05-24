@@ -315,6 +315,21 @@ header h1 {
 }
 .ct-progress.done { color: #4caf50; }
 
+/* ── Cut page images (Colors view detail) ── */
+.cut-page-imgs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.cut-page-img {
+    width: 100%;
+    max-width: 280px;
+    border-radius: 5px;
+    border: 1px solid #0f3460;
+    object-fit: contain;
+}
+
 /* ── Fabric detail panel (reuses detail-panel styles) ── */
 .fabric-seg-list { list-style: none; margin-top: 8px; }
 .fabric-seg-item {

@@ -250,6 +250,13 @@ def quilt_assy_image(quilt_id, filename):
         return "", 404
     return send_file(path, mimetype="image/jpeg")
 
+@app.route("/quilts/<quilt_id>/cut/<filename>")
+def quilt_cut_image(quilt_id, filename):
+    path = QUILTS_DIR / quilt_id / "cut" / filename
+    if not path.exists():
+        return "", 404
+    return send_file(path, mimetype="image/jpeg")
+
 @app.route("/api/assy_list")
 def api_assy_list():
     quilt_id = get_active_quilt()
@@ -680,6 +687,7 @@ def api_fabrics():
                     "piece_num": piece["piece_num"],
                     "template":  piece["template"],
                     "quantity":  piece["quantity"],
+                    "page":      piece.get("page"),
                 })
 
     result = []
@@ -691,12 +699,14 @@ def api_fabrics():
             "cut":      seg_data[code][(b, f)]["cut"],
             "pieces":   seg_data[code][(b, f)]["pieces"],
         } for b, f in pairs]
+        all_pages = sorted({p["page"] for s in seg_data.get(code, {}).values() for p in s["pieces"] if p.get("page")})
         result.append({
             "code":     code,
             "name":     fab["name"],
             "sku":      fab.get("sku", ""),
             "size":     fab.get("size", ""),
             "color":    colors.get(code),
+            "pages":    all_pages,
             "segments": segs,
             "total":    len(segs),
             "cut":      sum(1 for s in segs if s["cut"]),

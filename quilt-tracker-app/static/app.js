@@ -1005,12 +1005,29 @@ function renderFabricDetail(fab) {
     }, 0);
     const allDone = donePieces === totalPieces && totalPieces > 0;
 
+    const pageLabel = fab.pages && fab.pages.length
+        ? "p." + fab.pages.join(", ")
+        : "";
+    const cutImgHtml = fab.pages && fab.pages.length && activeQuilt
+        ? fab.pages.map(pg => {
+            const file = "cut_" + String(pg).padStart(3, "0") + ".jpg";
+            return `<img src="/quilts/${activeQuilt}/cut/${file}"
+                        class="cut-page-img"
+                        alt="Cut guide page ${pg}"
+                        onerror="this.style.display='none'">`;
+          }).join("")
+        : "";
+
     panel.innerHTML = `
         <div class="fabric-detail-header" style="background:${bg};color:${fg};padding:14px 16px;border-radius:6px;margin-bottom:12px">
-            <div style="font-size:1.6rem;font-weight:bold;line-height:1">${fab.code}</div>
+            <div style="display:flex;align-items:baseline;gap:10px">
+                <span style="font-size:1.6rem;font-weight:bold;line-height:1">${fab.code}</span>
+                ${pageLabel ? `<span style="font-size:0.75rem;opacity:0.7">${pageLabel}</span>` : ""}
+            </div>
             <div style="font-size:0.9rem;opacity:0.85">${fab.name}</div>
             <div style="font-size:0.8rem;margin-top:4px">${fab.sku ? "SKU " + fab.sku + " · " : ""}${fab.size || ""}</div>
         </div>
+        ${cutImgHtml ? `<div class="cut-page-imgs">${cutImgHtml}</div>` : ""}
         <div style="margin-bottom:12px;font-size:0.9rem;color:${allDone ? "#4caf50" : "#ccc"}">
             ${allDone ? "✓ All pieces cut" : `${donePieces} of ${totalPieces} pieces cut`}
         </div>

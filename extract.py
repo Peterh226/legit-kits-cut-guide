@@ -788,6 +788,18 @@ def _copy_assy_images(assy_folder: Path, out_dir: Path) -> None:
         (dest / img.name).write_bytes(img.read_bytes())
     print(f"Copied {len(images)} assy images to {dest}")
 
+def _copy_cut_images(cut_folder: Path, out_dir: Path) -> None:
+    images = sorted_images(cut_folder, "cut")
+    dest = out_dir / "cut"
+    dest.mkdir(exist_ok=True)
+    copied = 0
+    for img in images:
+        target = dest / img.name
+        if not target.exists():
+            target.write_bytes(img.read_bytes())
+            copied += 1
+    print(f"Copied {copied} cut images to {dest} ({len(images)} total)")
+
 
 def _copy_overview_image(overview_folder: Path, out_dir: Path, rotate_ccw: int = 0) -> None:
     images = sorted_images(overview_folder, "overview")
@@ -917,6 +929,7 @@ def main() -> None:
                 new_rows = [r for r in rows if int(r.get("page") or 0) in target_pages]
                 rows = sorted(kept + new_rows, key=lambda r: (int(r.get("page") or 0), int(r.get("piece_num") or 0)))
             write_cut_guide_data(rows, out_path)
+            _copy_cut_images(cut_folder, out_dir)
 
     if args.stage in ("colors", "all") and overview_folder.is_dir():
         print("\n=== Colors ===")
