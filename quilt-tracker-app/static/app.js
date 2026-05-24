@@ -1022,7 +1022,7 @@ function renderFabricDetail(fab) {
         <div class="fabric-detail-header" style="background:${bg};color:${fg};padding:14px 16px;border-radius:6px;margin-bottom:12px">
             <div style="display:flex;align-items:baseline;gap:10px">
                 <span style="font-size:1.6rem;font-weight:bold;line-height:1">${fab.code}</span>
-                ${pageLabel ? `<span style="font-size:0.75rem;opacity:0.7">${pageLabel}</span>` : ""}
+                ${pageLabel ? `<span style="font-size:1.1rem;font-weight:bold;opacity:0.85">${pageLabel}</span>` : ""}
             </div>
             <div style="font-size:0.9rem;opacity:0.85">${fab.name}</div>
             <div style="font-size:0.8rem;margin-top:4px">${fab.sku ? "SKU " + fab.sku + " · " : ""}${fab.size || ""}</div>
