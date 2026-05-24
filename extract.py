@@ -19,6 +19,8 @@ Options:
     --status            Print per-stage staging status and exit
     --dry-run           Call API and validate, but don't write output files
     --api-key KEY       Anthropic API key (overrides ANTHROPIC_API_KEY env var)
+    --fix-rotation      After copying cut images, detect and fix any 180° rotation
+                        using Claude Haiku vision (adds ~$0.01/image in API cost)
 
 Output (written to quilts/<quilt-id>/):
     overview_data.json      Master fabric list and metadata
@@ -801,6 +803,51 @@ def _copy_cut_images(cut_folder: Path, out_dir: Path) -> None:
     print(f"Copied {copied} cut images to {dest} ({len(images)} total)")
 
 
+def _fix_cut_rotation(client: anthropic.Anthropic, cut_dir: Path) -> None:
+    """Check each cut image and rotate in-place if footer is not in lower-right."""
+    images = sorted(cut_dir.glob("*.jpg"))
+    if not images:
+        return
+    print(f"  [rotation] Checking {len(images)} cut images ...")
+    rotated = 0
+    for img_path in images:
+        thumb = Image.open(img_path).convert("RGB")
+        thumb.thumbnail((600, 800), Image.LANCZOS)
+        buf = io.BytesIO()
+        thumb.save(buf, format="JPEG", quality=75)
+        b64 = base64.standard_b64encode(buf.getvalue()).decode()
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=8,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": b64}},
+                    {"type": "text", "text": (
+                        "This is a scanned cut guide page from a quilt kit. "
+                        "When correctly oriented: the page title appears at the TOP and "
+                        "a footer reading 'Page X of Y' appears in the LOWER-RIGHT corner. "
+                        "How many degrees CLOCKWISE must this image be rotated to reach "
+                        "correct orientation? Reply with exactly one of: 0, 90, 180, 270"
+                    )},
+                ],
+            }],
+        )
+        text = resp.content[0].text.strip().split()[0]
+        try:
+            deg = int(text)
+            deg = deg if deg in (0, 90, 180, 270) else 0
+        except ValueError:
+            deg = 0
+        if deg:
+            rotated += 1
+            print(f"  [rotation] {img_path.name}: rotating {deg}° CW")
+            Image.open(img_path).rotate(-deg, expand=True).save(img_path, quality=92)
+        else:
+            print(f"  [rotation] {img_path.name}: ok")
+    print(f"  [rotation] {rotated} of {len(images)} images needed rotation")
+
+
 def _copy_overview_image(overview_folder: Path, out_dir: Path, rotate_ccw: int = 0) -> None:
     images = sorted_images(overview_folder, "overview")
     if not images:
@@ -833,7 +880,8 @@ def main() -> None:
     parser.add_argument("--pages",     help="Process page range e.g. 5-10")
     parser.add_argument("--finalize",  action="store_true", help="Write output files from staging; no API calls")
     parser.add_argument("--status",    action="store_true", help="Show staging status and exit")
-    parser.add_argument("--dry-run",   action="store_true", help="Call API but don't write output files")
+    parser.add_argument("--dry-run",      action="store_true", help="Call API but don't write output files")
+    parser.add_argument("--fix-rotation", action="store_true", help="Detect and fix cut image rotation after copying")
     parser.add_argument("--api-key",   help="Anthropic API key")
     args = parser.parse_args()
 
@@ -930,6 +978,9 @@ def main() -> None:
                 rows = sorted(kept + new_rows, key=lambda r: (int(r.get("page") or 0), int(r.get("piece_num") or 0)))
             write_cut_guide_data(rows, out_path)
             _copy_cut_images(cut_folder, out_dir)
+            if args.fix_rotation:
+                print("\n=== Rotation check ===")
+                _fix_cut_rotation(client, out_dir / "cut")
 
     if args.stage in ("colors", "all") and overview_folder.is_dir():
         print("\n=== Colors ===")
