@@ -113,7 +113,14 @@ header h1 {
     font-weight: bold;
 }
 .view-toggle-btn.active { background: #16213e; color: #e0e0e0; }
-.view-toggle-btn:not(.active):hover { color: #ccc; }
+.view-toggle-btn:not(.active):not(:disabled):hover { color: #ccc; }
+.view-toggle-btn.soon { color: #444; cursor: default; font-style: italic; }
+.toggle-divider {
+    width: 1px;
+    background: #1e3a6e;
+    margin: 2px 4px;
+    align-self: stretch;
+}
 
 /* ── Color grid ── */
 .color-grid-wrap {
