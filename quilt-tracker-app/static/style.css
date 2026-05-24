@@ -721,6 +721,11 @@ main {
     border-color: #ddd;
 }
 .ov-warn { cursor: help; }
+.ov-warn-text {
+    color: #ff9800;
+    font-size: 0.8em;
+    margin-left: 4px;
+}
 
 .overview-progress-bar {
     height: 10px;

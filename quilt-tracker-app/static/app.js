@@ -471,17 +471,17 @@ function renderOverview(stats) {
         return `<span class="cx-dots">${dots}</span> ${complexityLabels[c] || ""}`;
     })(meta.complexity);
 
-    // Cross-check expected vs actual; show ⚠️ when they differ.
-    const mismatch = (expected, actual) =>
-        expected != null && actual != null && expected !== actual
-            ? ` <span class="ov-warn" title="Cover page says ${expected}, extracted ${actual}">⚠️</span>`
-            : "";
-    const colorsLine = (meta.colors_expected != null || stats.total_colors != null)
-        ? `${stats.total_colors ?? "—"}${mismatch(meta.colors_expected, stats.total_colors)}`
-        : "";
-    const piecesLine = (meta.pieces_expected != null || stats.total_pieces != null)
-        ? `${stats.total_pieces ?? "—"}${mismatch(meta.pieces_expected, stats.total_pieces)}`
-        : "";
+    // Cross-check expected vs actual; show both values + ⚠️ when they differ.
+    const renderCount = (expected, actual) => {
+        if (expected == null && actual == null) return "";
+        if (expected != null && actual != null && expected !== actual) {
+            return `${actual} <span class="ov-warn-text">(Legit Kits ${expected})</span>`
+                 + ` <span class="ov-warn" title="Legit Kits cover says ${expected}, extracted ${actual}">⚠️</span>`;
+        }
+        return `${actual ?? expected}`;
+    };
+    const colorsLine = renderCount(meta.colors_expected, stats.total_colors);
+    const piecesLine = renderCount(meta.pieces_expected, stats.total_pieces);
 
     const metaRows = [
         meta.finished_size ? ["Size",       meta.finished_size] : null,
