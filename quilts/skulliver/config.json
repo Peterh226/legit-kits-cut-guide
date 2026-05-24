@@ -3,5 +3,12 @@
   "start_date": "2026-04-29",
   "grid_rows": "ABCDEFGH",
   "grid_cols": 8,
-  "grid_layout": "row_letters"
+  "grid_layout": "row_letters",
+  "metadata": {
+    "finished_size": "60x80",
+    "complexity": 1,
+    "design_number": "31",
+    "colors_expected": 106,
+    "pieces_expected": 912
+  }
 }

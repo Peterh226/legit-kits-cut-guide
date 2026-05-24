@@ -924,9 +924,9 @@ def _cross_check_metadata(out_dir: Path) -> None:
     if issues:
         print("\n=== Cross-check ===")
         for line in issues:
-            print(f"  WARNING — {line}")
+            print(f"  WARNING - {line}")
     else:
-        print(f"\n  [cross-check] colors {actual_colors} ✓  pieces {actual_pieces} ✓")
+        print(f"\n  [cross-check] colors {actual_colors} OK  pieces {actual_pieces} OK")
 
 
 def _configure_quilt(out_dir: Path) -> None:

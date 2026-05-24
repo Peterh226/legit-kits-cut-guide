@@ -3,5 +3,12 @@
   "grid_rows": "ABCD",
   "grid_cols": 4,
   "grid_layout": "col_letters",
-  "block_orientation": "landscape"
+  "block_orientation": "landscape",
+  "metadata": {
+    "finished_size": "40x30",
+    "complexity": 3,
+    "design_number": "66",
+    "colors_expected": 71,
+    "pieces_expected": 1103
+  }
 }
