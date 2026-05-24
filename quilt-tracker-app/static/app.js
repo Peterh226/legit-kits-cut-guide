@@ -457,6 +457,48 @@ function renderOverview(stats) {
     const panel = document.getElementById("detail-panel");
     const pct = stats.pct_complete;
 
+    const meta      = (patternData && patternData.metadata) || {};
+    const hasCover  = patternData && patternData.has_cover;
+    const coverHtml = hasCover
+        ? `<img src="/quilts/${encodeURIComponent(activeQuilt)}/cover.jpg" class="ov-cover" alt="Cover page">`
+        : "";
+
+    const complexityLabels = { 1: "Faster", 2: "Moderate", 3: "Detailed" };
+    const complexityHtml = (c => {
+        if (!c) return "";
+        const dots = [1, 2, 3].map(i =>
+            `<span class="cx-dot${i <= c ? " cx-on" : ""}"></span>`).join("");
+        return `<span class="cx-dots">${dots}</span> ${complexityLabels[c] || ""}`;
+    })(meta.complexity);
+
+    // Cross-check expected vs actual; show ⚠️ when they differ.
+    const mismatch = (expected, actual) =>
+        expected != null && actual != null && expected !== actual
+            ? ` <span class="ov-warn" title="Cover page says ${expected}, extracted ${actual}">⚠️</span>`
+            : "";
+    const colorsLine = (meta.colors_expected != null || stats.total_colors != null)
+        ? `${stats.total_colors ?? "—"}${mismatch(meta.colors_expected, stats.total_colors)}`
+        : "";
+    const piecesLine = (meta.pieces_expected != null || stats.total_pieces != null)
+        ? `${stats.total_pieces ?? "—"}${mismatch(meta.pieces_expected, stats.total_pieces)}`
+        : "";
+
+    const metaRows = [
+        meta.finished_size ? ["Size",       meta.finished_size] : null,
+        complexityHtml     ? ["Complexity", complexityHtml]     : null,
+        meta.design_number ? ["Design #",   meta.design_number] : null,
+        colorsLine         ? ["Colors",     colorsLine]         : null,
+        piecesLine         ? ["Pieces",     piecesLine]         : null,
+    ].filter(Boolean);
+
+    const metaHtml = metaRows.length ? `
+        <div class="ov-meta">
+            ${coverHtml}
+            <dl class="ov-meta-grid">
+                ${metaRows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}
+            </dl>
+        </div>` : coverHtml ? `<div class="ov-meta">${coverHtml}</div>` : "";
+
     const xlsxHtml = excelFiles.length ? `
         <div class="excel-links">
             <h3>Spreadsheets</h3>
@@ -465,6 +507,7 @@ function renderOverview(stats) {
 
     panel.innerHTML = `
         <h2>Quilt Overview</h2>
+        ${metaHtml}
         <div class="overview-progress-bar">
             <div class="overview-progress-fill" style="width:${pct}%"></div>
         </div>
@@ -930,7 +973,17 @@ function renderColorGrid() {
     grid.innerHTML = fabricData.map(fab => {
         const bg      = fab.color || "#2a3a4a";
         const fg      = contrastColor(fab.color);
-        const allDone = fab.cut === fab.total && fab.total > 0;
+        // Count pieces (not segments) so the tile matches the detail view's totals.
+        let totalPieces = 0, donePieces = 0;
+        for (const seg of (fab.segments || [])) {
+            const bc = pieceChecks[seg.block_id] || {};
+            const fragChecks = bc[seg.frag_id] || {};
+            for (const p of (seg.pieces || [])) {
+                totalPieces++;
+                if (fragChecks[`${fab.code}_${p.piece_num}`]) donePieces++;
+            }
+        }
+        const allDone = donePieces === totalPieces && totalPieces > 0;
         const progCls = allDone ? "done" : "";
         const selCls  = fab.code === selectedFabric ? " selected" : "";
         const doneCls = allDone ? " done" : "";
@@ -939,10 +992,12 @@ function renderColorGrid() {
         return `<div class="color-tile${selCls}${doneCls}"
                      style="background:${bg};color:${fg}"
                      onclick="selectFabric('${fab.code}')">
-            <span class="ct-code">${fab.code}</span>
+            <div class="ct-top">
+                <span class="ct-code">${fab.code}</span>
+                <span class="ct-pages">${pageStr}</span>
+            </div>
             <span class="ct-name">${fab.name}</span>
-            <span class="ct-pages">${pageStr}</span>
-            <span class="ct-progress ${progCls}">${allDone ? "✓ done" : `${fab.cut}/${fab.total}`}</span>
+            <span class="ct-progress ${progCls}">${allDone ? "✓ done" : `${donePieces}/${totalPieces}`}</span>
         </div>`;
     }).join("");
 }
@@ -1024,9 +1079,9 @@ function renderFabricDetail(fab) {
 
     panel.innerHTML = `
         <div class="fabric-detail-header" style="background:${bg};color:${fg};padding:14px 16px;border-radius:6px;margin-bottom:12px">
-            <div style="display:flex;align-items:baseline;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
                 <span style="font-size:1.6rem;font-weight:bold;line-height:1">${fab.code}</span>
-                ${pageLabel ? `<span style="font-size:1.1rem;font-weight:bold;opacity:0.85">${pageLabel}</span>` : ""}
+                ${pageLabel ? `<span style="font-size:1.6rem;font-weight:bold;line-height:1;opacity:0.75">${pageLabel}</span>` : ""}
             </div>
             <div style="font-size:0.9rem;opacity:0.85">${fab.name}</div>
             <div style="font-size:0.8rem;margin-top:4px">${fab.sku ? "SKU " + fab.sku + " · " : ""}${fab.size || ""}</div>
@@ -1073,14 +1128,23 @@ async function checkFabricPiece(code, block_id, frag_id, piece_key, checked) {
                 fab.cut = fab.segments.filter(s => s.cut).length;
             }
         }
-        // Update color tile
-        const allFabDone = fab.cut === fab.total && fab.total > 0;
+        // Update color tile (piece counts to match detail view)
+        let totalPieces = 0, donePieces = 0;
+        for (const s of (fab.segments || [])) {
+            const bc = pieceChecks[s.block_id] || {};
+            const fragChecks = bc[s.frag_id] || {};
+            for (const p of (s.pieces || [])) {
+                totalPieces++;
+                if (fragChecks[`${code}_${p.piece_num}`]) donePieces++;
+            }
+        }
+        const allFabDone = donePieces === totalPieces && totalPieces > 0;
         const tiles = document.querySelectorAll(".color-tile");
         fabricData.forEach((f, i) => {
             if (f.code === code) {
                 const tile = tiles[i];
                 if (tile) {
-                    tile.querySelector(".ct-progress").textContent = allFabDone ? "✓ done" : `${fab.cut}/${fab.total}`;
+                    tile.querySelector(".ct-progress").textContent = allFabDone ? "✓ done" : `${donePieces}/${totalPieces}`;
                     tile.querySelector(".ct-progress").className   = "ct-progress" + (allFabDone ? " done" : "");
                     tile.classList.toggle("done", allFabDone);
                 }

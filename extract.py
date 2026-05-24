@@ -487,7 +487,8 @@ def run_overview(
     pages: str | None,
     dry_run: bool,
 ) -> list[dict]:
-    images = sorted_images(folder, "overview")
+    # Skip overview_000.jpg — that's the cover page, copied separately to cover.jpg.
+    images = [p for p in sorted_images(folder, "overview") if _page_num(p) > 0]
     staging = load_staging(staging_path)
     targets = filter_pages(images, page, pages)
 
@@ -861,8 +862,14 @@ def _fix_cut_rotation(client: anthropic.Anthropic, cut_dir: Path) -> None:
     print(f"  [rotation] {rotated} of {len(images)} images needed rotation")
 
 
+def _page_num(img: Path) -> int:
+    m = re.search(r"(\d+)", img.stem)
+    return int(m.group(1)) if m else -1
+
+
 def _copy_overview_image(overview_folder: Path, out_dir: Path, rotate_ccw: int = 0) -> None:
-    images = sorted_images(overview_folder, "overview")
+    # Skip the optional cover page (overview_000.jpg); first grid photo is overview_001+.
+    images = [p for p in sorted_images(overview_folder, "overview") if _page_num(p) > 0]
     if not images:
         return
     dest = out_dir / "quilt_overview.jpg"
@@ -878,6 +885,98 @@ def _copy_overview_image(overview_folder: Path, out_dir: Path, rotate_ccw: int =
         print(f"  Copied {images[0].name} -> quilt_overview.jpg (replace manually if needed)")
 
 
+def _copy_cover_image(overview_folder: Path, out_dir: Path) -> None:
+    """Copy overview_000.jpg (if present) to quilts/<id>/cover.jpg. Always overwrites."""
+    candidates = [p for p in sorted_images(overview_folder, "overview") if _page_num(p) == 0]
+    if not candidates:
+        return
+    src = candidates[0]
+    dest = out_dir / "cover.jpg"
+    dest.write_bytes(src.read_bytes())
+    print(f"  Copied {src.name} -> cover.jpg")
+
+
+def _cross_check_metadata(out_dir: Path) -> None:
+    """Compare colors_expected / pieces_expected in config.json metadata against
+    actual counts from cut_guide_data.py. Prints a warning if they disagree."""
+    config_path = out_dir / "config.json"
+    if not config_path.exists():
+        return
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    meta = config.get("metadata", {})
+    if not meta.get("colors_expected") and not meta.get("pieces_expected"):
+        return
+
+    cut_path = out_dir / "cut_guide_data.py"
+    if not cut_path.exists():
+        return
+    ns: dict = {}
+    exec(cut_path.read_text(encoding="utf-8"), ns)
+    rows = ns.get("DATA", [])
+    actual_colors = len({r[0] for r in rows if r})
+    actual_pieces = len(rows)
+
+    issues = []
+    if meta.get("colors_expected") is not None and meta["colors_expected"] != actual_colors:
+        issues.append(f"colors: expected {meta['colors_expected']}, got {actual_colors}")
+    if meta.get("pieces_expected") is not None and meta["pieces_expected"] != actual_pieces:
+        issues.append(f"pieces: expected {meta['pieces_expected']}, got {actual_pieces}")
+    if issues:
+        print("\n=== Cross-check ===")
+        for line in issues:
+            print(f"  WARNING — {line}")
+    else:
+        print(f"\n  [cross-check] colors {actual_colors} ✓  pieces {actual_pieces} ✓")
+
+
+def _configure_quilt(out_dir: Path) -> None:
+    """Interactive prompt to capture cover-page metadata into config.json.
+
+    Press Enter to keep the current value shown in brackets.
+    """
+    config_path = out_dir / "config.json"
+    config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    meta = dict(config.get("metadata", {}))
+
+    print(f"\nConfigure metadata for: {out_dir.name}")
+    print("(press Enter to keep the current value shown in brackets)\n")
+
+    def ask_str(label: str, key: str) -> None:
+        current = meta.get(key, "")
+        default = f" [{current}]" if current else ""
+        val = input(f"  {label}{default}: ").strip()
+        if val:
+            meta[key] = val
+
+    def ask_int(label: str, key: str, valid: set[int] | None = None) -> None:
+        current = meta.get(key)
+        default = f" [{current}]" if current is not None else ""
+        while True:
+            val = input(f"  {label}{default}: ").strip()
+            if not val:
+                return
+            try:
+                n = int(val)
+            except ValueError:
+                print("    Not a number; try again.")
+                continue
+            if valid is not None and n not in valid:
+                print(f"    Must be one of {sorted(valid)}.")
+                continue
+            meta[key] = n
+            return
+
+    ask_str("Finished size (e.g. 60 x 72 in)",        "finished_size")
+    ask_int("Complexity (1=Faster, 2=Moderate, 3=Detailed)", "complexity", valid={1, 2, 3})
+    ask_str("Design #",                                "design_number")
+    ask_int("Colors expected (cross-check)",          "colors_expected")
+    ask_int("Pieces expected (cross-check)",          "pieces_expected")
+
+    config["metadata"] = meta
+    config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+    print(f"\nSaved metadata to {config_path}")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -885,7 +984,8 @@ def _copy_overview_image(overview_folder: Path, out_dir: Path, rotate_ccw: int =
 def main() -> None:
     _load_dotenv()
     parser = argparse.ArgumentParser(description="Extract Legit Kits pattern data via Claude vision API")
-    parser.add_argument("pattern_folder", help="Folder with cut/, assy/, overview/ subfolders")
+    parser.add_argument("pattern_folder", nargs="?",
+                        help="Folder with cut/, assy/, overview/ subfolders (optional with --configure + --quilt-id)")
     parser.add_argument("--quilt-id",  help="Quilt identifier (default: lowercased folder name)")
     parser.add_argument("--stage",     choices=["cut", "assy", "overview", "colors", "all"], default="all")
     parser.add_argument("--resume",    action="store_true", help="Skip already-processed pages")
@@ -898,16 +998,32 @@ def main() -> None:
                         help="Don't rotate cut images 90° CCW on copy (use if scans are already upright)")
     parser.add_argument("--fix-rotation", action="store_true",
                         help="Run Haiku-based per-page rotation check after copying (fallback for non-standard scans)")
+    parser.add_argument("--configure", action="store_true",
+                        help="Interactively prompt for cover-page metadata (finished size, complexity, design #, "
+                             "colors/pieces expected) and write to config.json. Also copies overview_000.jpg to "
+                             "cover.jpg if present. Does not run any extraction.")
     parser.add_argument("--api-key",   help="Anthropic API key")
     args = parser.parse_args()
 
-    pattern_folder = Path(args.pattern_folder).resolve()
-    if not pattern_folder.is_dir():
+    if not args.pattern_folder and not args.quilt_id:
+        sys.exit("Error: provide pattern_folder, or --quilt-id with --configure")
+
+    pattern_folder = Path(args.pattern_folder).resolve() if args.pattern_folder else None
+    if pattern_folder and not pattern_folder.is_dir():
         sys.exit(f"Error: {pattern_folder} is not a directory")
 
-    quilt_id = args.quilt_id or pattern_folder.name.lower()
+    quilt_id = args.quilt_id or (pattern_folder.name.lower() if pattern_folder else None)
+    if not quilt_id:
+        sys.exit("Error: could not determine quilt-id")
     out_dir  = Path(__file__).parent / "quilts" / quilt_id
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- Configure (interactive metadata) ---
+    if args.configure:
+        if pattern_folder:
+            _copy_cover_image(pattern_folder / "overview", out_dir)
+        _configure_quilt(out_dir)
+        return
 
     config_path = out_dir / "config.json"
     quilt_config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
@@ -961,6 +1077,7 @@ def main() -> None:
                 _update_config_grid(out_dir, grid_rows, grid_cols, grid_layout)
             rotate_ccw = 90 if grid_layout == "col_letters" else 0
             _copy_overview_image(overview_folder, out_dir, rotate_ccw=rotate_ccw)
+            _copy_cover_image(overview_folder, out_dir)
         fabric_lookup = build_fabric_lookup(overview_data)
         print(f"Fabric lookup: {len(fabric_lookup)} fabrics")
 
@@ -1013,6 +1130,9 @@ def main() -> None:
         subprocess.run([sys.executable, "generate.py", "--quilt-id", quilt_id], check=False)
         print("\n=== Running tracking.py ===")
         subprocess.run([sys.executable, "tracking.py", "--quilt-id", quilt_id], check=False)
+
+    if not args.dry_run:
+        _cross_check_metadata(out_dir)
 
     print("\nDone.")
 

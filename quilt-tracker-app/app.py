@@ -95,6 +95,7 @@ def _load_pattern(data_dir):
     grid_cols         = int(config.get("grid_cols", 8))
     grid_layout       = config.get("grid_layout", "row_letters")
     block_orientation = config.get("block_orientation", "portrait")
+    metadata          = config.get("metadata", {})
 
     fabrics = {}
     for row in DATA:
@@ -145,6 +146,7 @@ def _load_pattern(data_dir):
         "grid_cols":         grid_cols,
         "grid_layout":       grid_layout,
         "block_orientation": block_orientation,
+        "metadata":          metadata,
     }
 
 
@@ -206,6 +208,7 @@ def build_stats(pattern, progress):
     in_progress = statuses.count("in_progress")
     total_segments = sum(len(pattern["blocks"][b]["fragments"]) for b in pattern["blocks"])
     total_pieces   = sum(len(pattern["blocks"][b]["pieces"])    for b in pattern["blocks"])
+    total_colors   = len(pattern.get("fabrics", {}))
     segments_cut   = sum(
         1
         for b in pattern["blocks"]
@@ -220,6 +223,7 @@ def build_stats(pattern, progress):
         "pct_complete":   round(complete / total * 100) if total else 0,
         "total_segments": total_segments,
         "total_pieces":   total_pieces,
+        "total_colors":   total_colors,
         "segments_cut":   segments_cut,
     }
 
@@ -236,6 +240,16 @@ def api_quilts():
 @app.route("/quilts/<quilt_id>/overview.jpg")
 def quilt_overview_image(quilt_id):
     path = QUILTS_DIR / quilt_id / "quilt_overview.jpg"
+    if not path.exists():
+        return "", 404
+    response = send_file(path, mimetype="image/jpeg")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
+
+@app.route("/quilts/<quilt_id>/cover.jpg")
+def quilt_cover_image(quilt_id):
+    path = QUILTS_DIR / quilt_id / "cover.jpg"
     if not path.exists():
         return "", 404
     response = send_file(path, mimetype="image/jpeg")
@@ -314,6 +328,8 @@ def api_pattern():
         "grid_cols":         pattern["grid_cols"],
         "grid_layout":       pattern["grid_layout"],
         "block_orientation": pattern["block_orientation"],
+        "metadata":          pattern.get("metadata", {}),
+        "has_cover":         (QUILTS_DIR / quilt_id / "cover.jpg").exists(),
         "stats":             build_stats(pattern, progress),
     })
 
