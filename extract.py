@@ -41,6 +41,7 @@ Staging files (quilts/<quilt-id>/, one per stage):
 
 import argparse
 import base64
+import importlib.util
 import json
 import os
 import re
@@ -859,6 +860,112 @@ def write_cut_guide_data(rows: list[dict], out_path: Path) -> None:
     print(f"Wrote {len(rows)} rows to {out_path}")
 
 
+def _suffix_key(suffix: str) -> int:
+    """Ordering key for segment suffixes: a=0..z=25 (L/l→11), then 1=26, 2=27, ..."""
+    if suffix == 'L':
+        return ord('l') - ord('a')
+    if len(suffix) == 1 and suffix.isalpha():
+        return ord(suffix.lower()) - ord('a')
+    if suffix and all(c.isdigit() for c in suffix):
+        return 26 + int(suffix) - 1
+    return 999
+
+
+def _load_blocks_if_available(out_dir: Path) -> dict:
+    asm_path = out_dir / "assembly_data.py"
+    if not asm_path.exists():
+        return {}
+    spec = importlib.util.spec_from_file_location("assembly_data", asm_path)
+    mod  = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)
+        return getattr(mod, "BLOCKS", {})
+    except Exception:
+        return {}
+
+
+def _repair_suffix_order(rows: list[dict], blocks: dict) -> tuple[list[dict], list[str]]:
+    """Auto-correct letter-suffix segment codes that appear out of order on their cut page.
+
+    A letter suffix appearing after a later letter (or any numeric suffix) in the same
+    (page, fabric, block) group is a misread of a post-z numeric suffix.  When exactly
+    one numeric segment for that block has the matching sew_seq not yet present, the code
+    is corrected automatically.  Ambiguous cases are logged but left unchanged.
+
+    Returns (repaired_rows, log_lines).
+    """
+    import re as _re
+
+    def _block_of(tmpl):
+        m = _re.match(r'^([A-Z]\d|\d[A-Z])', str(tmpl))
+        return m.group(1) if m else None
+
+    # Numeric segs per block
+    numeric_segs_for_block: dict[str, list[str]] = {}
+    for block, frags in blocks.items():
+        nums = [f for f in frags if _re.search(r'\d+$', f[len(block):])]
+        if nums:
+            numeric_segs_for_block[block] = nums
+
+    # Sew-seq sets per segment (for candidate filtering)
+    by_seg: dict[str, set] = {}
+    for r in rows:
+        seg = r.get('template_code') or ''
+        seq = r.get('quantity')
+        if seg and isinstance(seq, int):
+            by_seg.setdefault(seg, set()).add(seq)
+
+    # Group rows by (page, fabric_code, block_id) preserving list order
+    from collections import defaultdict as _dd
+    groups: dict[tuple, list[int]] = _dd(list)
+    for i, r in enumerate(rows):
+        block = _block_of(r.get('template_code') or '')
+        if block is None:
+            continue
+        key = (int(r.get('page') or 0), r.get('fabric_code') or '', block)
+        groups[key].append(i)
+
+    log: list[str] = []
+    repaired = list(rows)
+
+    for (page, fabric, block), idxs in sorted(groups.items()):
+        sorted_idxs = sorted(idxs, key=lambda i: int(repaired[i].get('piece_num') or 0))
+        max_key_seen = -1
+        for i in sorted_idxs:
+            r = repaired[i]
+            tmpl = r.get('template_code') or ''
+            suffix = tmpl[len(block):]
+            key = _suffix_key(suffix)
+            if key < max_key_seen and key < 26:
+                # Letter suffix out of order — find candidates among numeric segs
+                sew_seq = r.get('quantity')
+                candidates = []
+                if isinstance(sew_seq, int) and block in numeric_segs_for_block:
+                    for nseg in numeric_segs_for_block[block]:
+                        nkey = _suffix_key(nseg[len(block):])
+                        if nkey > max_key_seen and sew_seq not in by_seg.get(nseg, set()):
+                            candidates.append(nseg)
+                if len(candidates) == 1:
+                    new_tmpl = candidates[0]
+                    log.append(
+                        f"  [auto-repair] p{page} {fabric}: '{tmpl}'({sew_seq}) -> '{new_tmpl}' "
+                        f"(suffix key {key} < max {max_key_seen})"
+                    )
+                    repaired[i] = dict(r, template_code=new_tmpl)
+                    by_seg.setdefault(new_tmpl, set()).add(sew_seq)
+                    by_seg[tmpl].discard(sew_seq)
+                else:
+                    cand_str = candidates if candidates else "(no candidate)"
+                    log.append(
+                        f"  [manual] p{page} {fabric}: '{tmpl}'({sew_seq}) out of order "
+                        f"(suffix key {key} < max {max_key_seen}); candidates: {cand_str}"
+                    )
+            else:
+                max_key_seen = max(max_key_seen, key)
+
+    return repaired, log
+
+
 def write_assembly_data(blocks: dict[str, list[str]], out_path: Path) -> None:
     lines = ['"""', "Auto-generated block assembly data.", '"""', "", "",
              "def _frags(block, letters):",
@@ -1193,6 +1300,14 @@ def main() -> None:
                 kept = [r for r in existing if int(r.get("page") or 0) not in target_pages]
                 new_rows = [r for r in rows if int(r.get("page") or 0) in target_pages]
                 rows = sorted(kept + new_rows, key=lambda r: (int(r.get("page") or 0), int(r.get("piece_num") or 0)))
+            blocks_for_repair = blocks if 'blocks' in dir() and blocks else _load_blocks_if_available(out_dir)
+            if blocks_for_repair:
+                rows, repair_log = _repair_suffix_order(rows, blocks_for_repair)
+                if repair_log:
+                    print(f"\n  Suffix order repairs ({sum(1 for l in repair_log if '[auto-repair]' in l)} auto, "
+                          f"{sum(1 for l in repair_log if '[manual]' in l)} manual review):")
+                    for line in repair_log:
+                        print(line)
             write_cut_guide_data(rows, out_path)
             rotate_ccw = 0 if args.no_rotate_cuts else 90
             _copy_cut_images(cut_folder, out_dir, rotate_ccw=rotate_ccw)
@@ -1287,6 +1402,14 @@ def _finalize(out_dir, cut_staging_path, cut_folder, assy_staging_path, assy_vis
             if v.get("status") in ("ok", "warning") and "data" in v:
                 rows.extend(v["data"])
         if rows:
+            blocks_for_repair = blocks if "blocks" in dir() and blocks else _load_blocks_if_available(out_dir)
+            if blocks_for_repair:
+                rows, repair_log = _repair_suffix_order(rows, blocks_for_repair)
+                if repair_log:
+                    print(f"\n  Suffix order repairs ({sum(1 for l in repair_log if '[auto-repair]' in l)} auto, "
+                          f"{sum(1 for l in repair_log if '[manual]' in l)} manual review):")
+                    for line in repair_log:
+                        print(line)
             write_cut_guide_data(rows, out_dir / "cut_guide_data.py")
 
     colors_staging = Path(out_dir) / "colors_raw.json"

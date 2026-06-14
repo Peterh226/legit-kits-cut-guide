@@ -191,9 +191,20 @@ def check_template_codes(data):
 # ---------------------------------------------------------------------------
 
 def _block_of(template):
-    """Return the block id portion of a template code (e.g. 'B1' from 'B1a')."""
-    m = re.match(r'^([A-Z]\d+|\d+[A-Z])', str(template))
+    """Return the block id portion of a template code (e.g. 'B1' from 'B1a' or 'B11')."""
+    m = re.match(r'^([A-Z]\d|\d[A-Z])', str(template))
     return m.group(1) if m else None
+
+
+def _suffix_key(suffix: str) -> int:
+    """Ordering key for segment suffixes: a=0..z=25 (L/l=11), then 1=26, 2=27, ..."""
+    if suffix == 'L':
+        return ord('l') - ord('a')
+    if len(suffix) == 1 and suffix.isalpha():
+        return ord(suffix.lower()) - ord('a')
+    if suffix and all(c.isdigit() for c in suffix):
+        return 26 + int(suffix) - 1
+    return 999
 
 
 def check_unknown_templates(data, blocks):
@@ -257,6 +268,71 @@ def check_sew_sequence_gaps(data):
                 f"  {seg}: missing sew sequence {missing} (max seen={max_seq}; "
                 f"fabrics={fabrics}; pages seen={pages})"
             )
+    return warnings
+
+
+def check_suffix_ordering(data, blocks):
+    """Detect segment suffixes that appear out of alphabetical/numeric order on their cut page.
+
+    On each cut-guide page, entries for a given (fabric, block) appear in suffix order:
+    a, b, c, … z, then 1, 2, 3 …  If a letter suffix appears AFTER a later letter (or after
+    any numeric suffix) in the same group, it is likely a misread of a numeric suffix.
+    Reports the offending row and lists the numeric segments for the block that are plausible
+    candidates (those whose sew-seq is not already present in the data).
+    """
+    # Build sew-seq sets per segment so we can identify missing candidates
+    by_seg = defaultdict(set)
+    for r in data:
+        seg, seq = r[5], r[6]
+        if isinstance(seq, int):
+            by_seg[seg].add(seq)
+
+    # Build numeric segments per block from assembly data
+    numeric_segs_for_block = {}
+    for block, frags in blocks.items():
+        nums = [f for f in frags if re.search(r'\d+$', f[len(block):])]
+        if nums:
+            numeric_segs_for_block[block] = nums
+
+    warnings = []
+
+    # Group rows by (page, fabric_code, block_id) preserving original piece_num order
+    groups = defaultdict(list)
+    for i, r in enumerate(data):
+        block = _block_of(r[5])
+        if block is None:
+            continue
+        key = (r[7], r[0], block)  # (page, fabric, block)
+        groups[key].append((i, r))
+
+    for (page, fabric, block), rows in sorted(groups.items()):
+        # Sort by piece_num (column 4) as that reflects the order on the printed page
+        rows_sorted = sorted(rows, key=lambda x: x[1][4])
+        max_key_seen = -1
+        for idx, (orig_i, r) in enumerate(rows_sorted):
+            tmpl = r[5]
+            suffix = tmpl[len(block):]
+            key = _suffix_key(suffix)
+            if key < max_key_seen and key < 26:
+                # Out of order — letter suffix appeared after a later letter or any numeric suffix
+                candidates = []
+                if block in numeric_segs_for_block:
+                    for nseg in numeric_segs_for_block[block]:
+                        nsuffix = nseg[len(block):]
+                        nkey = _suffix_key(nsuffix)
+                        if nkey > max_key_seen:  # numeric segs after the current max
+                            # check if sew-seq not yet fully populated
+                            sew_seq = r[6]
+                            if isinstance(sew_seq, int) and sew_seq not in by_seg.get(nseg, set()):
+                                candidates.append(nseg)
+                cand_str = f" -> candidates: {candidates}" if candidates else " (no unambiguous candidate)"
+                warnings.append(
+                    f"  page {page} fabric {fabric}: '{tmpl}' (piece {r[4]}) appears out of suffix order "
+                    f"(suffix key {key} < max {max_key_seen}){cand_str}"
+                )
+            else:
+                max_key_seen = max(max_key_seen, key)
+
     return warnings
 
 
@@ -341,6 +417,10 @@ def run_lint(data, quilt_name, blocks=None, config=None):
         warns = check_sew_sequence_gaps(data)
         if warns:
             all_warnings.append(("Sew-sequence gaps", warns))
+
+        warns = check_suffix_ordering(data, blocks)
+        if warns:
+            all_warnings.append(("Suffix order anomalies (likely numeric misread as letter)", warns))
 
     print(f"Linting {quilt_name}: {len(data)} rows, "
           f"{len({r[0] for r in data})} fabrics...\n")

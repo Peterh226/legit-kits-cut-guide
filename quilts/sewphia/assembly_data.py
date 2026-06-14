@@ -22,6 +22,6 @@ BLOCKS = {
     'C4': ['C4a', 'C4b', 'C4c', 'C4d', 'C4e', 'C4f', 'C4g', 'C4h', 'C4i', 'C4j', 'C4k'],
     'D1': ['D1a', 'D1b', 'D1c', 'D1d', 'D1e', 'D1f', 'D1g'],
     'D2': ['D2a', 'D2b', 'D2c', 'D2d', 'D2e', 'D2f', 'D2g', 'D2h', 'D2i', 'D2j', 'D2k', 'D2L', 'D2m', 'D2n', 'D2o', 'D2p', 'D2q', 'D2r', 'D2s', 'D2t', 'D2u'],
-    'D3': ['D3a', 'D3b', 'D3c', 'D3d', 'D3e', 'D3f', 'D3g', 'D3h', 'D3i', 'D3j', 'D3k', 'D3l', 'D3m', 'D3n', 'D3o', 'D3p', 'D3q', 'D3r'],
+    'D3': ['D3a', 'D3b', 'D3c', 'D3d', 'D3e', 'D3f', 'D3g', 'D3h', 'D3i', 'D3j', 'D3k', 'D3L', 'D3m', 'D3n', 'D3o', 'D3p', 'D3q', 'D3r'],
     'D4': ['D4a', 'D4b', 'D4c', 'D4d'],
 }
